@@ -1,5 +1,27 @@
 # AutoDQM_ML
 
-## Setup
-* For first time setup, run ```source setup.sh``` to create a virtual environment for python3 and install all necessary packages.
-* After the first time, activate the virtual environment with ```source env/bin/activate```.
+## Installation
+**1. Clone repository**
+```
+git clone https://github.com/AutoDQM/AutoDQM_ML.git 
+cd AutoDQM_ML
+```
+**2. Install dependencies**
+
+Dependencies are listed in ```environment.yml```. Install with
+```
+conda env create -f environment.yml
+```
+
+**3. Install autodqm-ml**
+
+**Users** can install with:
+```
+python setup.py install
+```
+**Developers** are suggested to install with:
+```
+pip install -e .
+```
+to avoid rerunning the whole installation every time there is a change.
+
