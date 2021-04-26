@@ -25,3 +25,13 @@ pip install -e .
 ```
 to avoid rerunning the whole installation every time there is a change.
 
+Once your setup is installed, you can activate your python environment with
+```
+conda activate autodqm-ml
+```
+
+**Note**: `CMSSW` environments can interfere with `conda` environments. Recommended to unset your CMSSW environment (if any) by running
+```
+eval `scram unsetenv -sh`
+```
+before attempting installation and each time before activating the `conda` environment.

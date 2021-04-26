@@ -15,7 +15,11 @@ def get_dependencies(env_yaml_file):
 setuptools.setup(
     name="AutoDQM_ML",
     packages=[
-        "dqm_data"
+        "autodqm_ml",
+        "autodqm_ml/data_prep",
+    ],
+    scripts=[
+        "scripts/fetch_data.py"
     ],
     install_requires=get_dependencies("environment.yml"),
     python_requires=">=3.8,!=3.9",

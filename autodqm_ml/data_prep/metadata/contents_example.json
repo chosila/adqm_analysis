@@ -1,0 +1,11 @@
+{
+    "CSCOfflineMonitor" : {
+        "1d_hists" : [
+            "/recHits/hRHTimingp12"
+        ],
+        "2d_hists" : [
+            "/Occupancy/hOStripSerial"
+        ]
+    }
+}
+
