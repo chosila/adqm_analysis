@@ -19,7 +19,7 @@ setuptools.setup(
         "autodqm_ml/data_prep",
     ],
     scripts=[
-        "scripts/fetch_data.py"
+        "examples/fetch_data.py"
     ],
     install_requires=get_dependencies("environment.yml"),
     python_requires=">=3.8,!=3.9",

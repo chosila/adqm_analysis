@@ -12,6 +12,8 @@ HIST_PATH = "DQMData/Run {}/CSC/Run summary/"
 class DataFetcher():
     """
     Class to access DQM data on /eos through `xrootd`.
+    :param tag: tag to identify this DataFetcher and its output files
+    :type tag: str
     :param contents: path to json file specifying the subsytems and histograms to grab 
     :type contents: str
     :param datasets: csv list of primary datasets to grab data for
@@ -20,18 +22,24 @@ class DataFetcher():
     :type years: str
     :param logger: logger to print out various levels of diagnostic info
     :type logger: logging.getLogger(), optional
+    :param short: flag to just run over a few files (for debugging)
+    :type short: bool
     """
-    def __init__(self, contents, years, datasets, logger = None):
+    def __init__(self, tag, contents, years, datasets, logger = None, short = False):
+        self.tag = tag
+
         with open(contents, "r") as f_in:
             self.contents = json.load(f_in)
 
         self.years = years.split(",")
         self.datasets = datasets.split(",")
         self.logger = logger
+
         if self.logger is None:
             self.logger = setup_logger("DEBUG", "log.txt")
 
-        self.tag = "test" #TODO
+        self.short = short
+
 
     def run(self):
         """
@@ -57,7 +65,11 @@ class DataFetcher():
         self.write_data()
         self.write_summary()
 
+
     def get_list_of_files(self):
+        """
+        Grab list of all DQM files matching specifications.
+        """
         self.files = { "all" : [] }
         for pd in self.datasets:
             self.files[pd] = {}
@@ -73,6 +85,7 @@ class DataFetcher():
                 self.files[pd][year] = files
                 self.files["all"] += files
 
+
     @staticmethod
     def construct_eos_path(base_path, pd, year):
         """
@@ -86,6 +99,7 @@ class DataFetcher():
         """
         # this is trivial now, but may get more complicated in Run 3, adding other subsystems, etc
         return base_path + ("Run%s/" % year) + pd + "/"
+
 
     @staticmethod
     def get_files(path, short = False):
@@ -115,6 +129,7 @@ class DataFetcher():
                 files[idx] = "root://eoscms.cern.ch/" + file # prepend xrootd accessor
 
         return files
+
 
     def extract_data(self, short = False):
         """
@@ -146,6 +161,19 @@ class DataFetcher():
         
 
     def load_data(self, file, run_number, subsystem, histograms):
+        """
+        Load specified histograms from a given file.
+        :param file: dqm file
+        :type file: str
+        :param run_number: run number for this file
+        :type run_number: int
+        :param subsystem: name of subsystem
+        :type subsystem: str
+        :param histograms: list of histograms to load data for
+        :type histograms: list of str
+        :return: histogram names and contents
+        :rtype: dict 
+        """
         hist_data = { "columns" : [], "data" : [] }
         with uproot.open(file) as f:
             if f is None:
@@ -159,6 +187,7 @@ class DataFetcher():
 
         return hist_data
 
+
     @staticmethod
     def get_run_number(file):
         """
@@ -169,6 +198,7 @@ class DataFetcher():
         :rtype: int
         """
         return int(file.split("/")[-1].split("__")[0][-6:])
+
 
     @staticmethod
     def construct_histogram_path(base_path, run_number, subsystem, histogram):
@@ -186,15 +216,20 @@ class DataFetcher():
         # this is trivial now, but may get more complicated
         return base_path.format(run_number) + subsystem + "/" + histogram
 
+
     def write_data(self):
         """
-
+        Write dataframe -> parquet file for each primary dataset.
         """
         for pd in self.datasets:
             df = self.data[pd]
             if df is not None:
                 df.to_parquet("output/%s_%s.parquet" % (self.tag, pd))
 
+
     def write_summary(self):
+        """
+        Write summary json of configuration.
+        """
         return
 
