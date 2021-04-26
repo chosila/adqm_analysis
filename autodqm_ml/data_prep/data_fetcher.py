@@ -53,7 +53,7 @@ class DataFetcher():
         self.logger.info("\t and for the following primary datasets %s" % str(self.datasets)) 
 
         self.get_list_of_files()
-        self.extract_data()
+        self.extract_data(short = True)
         self.write_data()
         self.write_summary()
 
@@ -116,9 +116,11 @@ class DataFetcher():
 
         return files
 
-    def extract_data(self):
+    def extract_data(self, short = False):
         """
         Extract all requested histograms from list of files.
+        :param short: flag to grab only a couple files
+        :type short: bool
         """
         self.data = {}
         for pd in self.datasets:
@@ -136,9 +138,11 @@ class DataFetcher():
                             columns = ["subsystem", "run_number", "pd", "year"] + histograms_1d["columns"] + histograms_2d["columns"]
                             column_data = [[subsystem, run_number, pd, year] + histograms_1d["data"] + histograms_2d["data"]]
                             df = pandas.DataFrame(column_data, columns = columns)
-                            self.data[pd].append(df, ignore_index=True)
-
-        
+                            self.data[pd] = self.data[pd].append(df, ignore_index=True)
+       
+                        if short:
+                            if len(self.data[pd]) > 2:
+                                return
         
 
     def load_data(self, file, run_number, subsystem, histograms):
@@ -189,7 +193,7 @@ class DataFetcher():
         for pd in self.datasets:
             df = self.data[pd]
             if df is not None:
-                df.to_parquet("output/%s_%s.parquet" % (self.tag, self.pd))
+                df.to_parquet("output/%s_%s.parquet" % (self.tag, pd))
 
     def write_summary(self):
         return
