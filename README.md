@@ -1,5 +1,10 @@
 # AutoDQM_ML
 
+## Description
+This repository contains tools relevant for training and evaluating anomaly detection algorithms on CMS DQM data.
+Core code is contained in `autodqm_ml`, core scripts are contained in `scripts` and some helpful examples are in `examples`.
+See the README of each subdirectory for more information on each.
+
 ## Installation
 **1. Clone repository**
 ```
@@ -35,3 +40,26 @@ conda activate autodqm-ml
 eval `scram unsetenv -sh`
 ```
 before attempting installation and each time before activating the `conda` environment.
+
+## Development Guidelines
+
+### Documentation
+Please comment code following [this convention](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html) from `sphinx`.
+
+In the future, `sphinx` can be used to automatically generate documentation pages for this project.
+
+### Logging
+Logging currently uses the Python [logging facility](https://docs.python.org/3/library/logging.html) together with [rich](https://github.com/willmcgugan/rich) (for pretty printing) to provide useful information printed both to the console and a log file (optional).
+
+Two levels of information can be printed: `INFO` and `DEBUG`. `INFO` level displays a subset of the information printed by `DEBUG` level.
+
+A logger can be created in your script with
+```
+from autodqm_ml.utils import setup_logger
+logger = setup_logger(<level>, <log_file>)
+```
+And printouts can be added to the logger with:
+```
+logger.info(<message>) # printed out only in INFO level
+logger.debug(<message>) # printed out in both INFO and DEBUG levels
+```
