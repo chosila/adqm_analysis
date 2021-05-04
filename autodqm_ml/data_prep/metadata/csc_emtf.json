@@ -1,0 +1,17 @@
+{
+    "CSC": [
+        "/Run summary/CSCOfflineMonitor/Occupancy/hORecHits",
+        "/Run summary/CSCOfflineMonitor/Occupancy/hOSegments",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeCombinedSerial",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeVsTOF",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeVsZ"
+    ],
+    "L1T" : [
+        "/Run summary/L1TStage2EMTF/emtfTrackBX",
+        "/Run summary/L1TStage2EMTF/emtfTrackEta",
+        "/Run summary/L1TStage2EMTF/emtfTrackOccupancy",
+        "/Run summary/L1TStage2EMTF/emtfTrackPhi",
+        "/Run summary/L1TStage2EMTF/emtfTrackQualityVsMode"
+    ]
+}
+
