@@ -62,6 +62,7 @@ And printouts can be added to the logger with:
 ```
 logger.info(<message>) # printed out only in INFO level
 logger.debug(<message>) # printed out in both INFO and DEBUG levels
+```
 
 ### Contributing
 To contribute anything beyond a minor bug fix or modifying documentation/comments, first check out a new branch:
