@@ -62,4 +62,16 @@ And printouts can be added to the logger with:
 ```
 logger.info(<message>) # printed out only in INFO level
 logger.debug(<message>) # printed out in both INFO and DEBUG levels
+
+### Contributing
+To contribute anything beyond a minor bug fix or modifying documentation/comments, first check out a new branch:
 ```
+git checkout -b my_new_improvement
+```
+Add your changes to this branch and push:
+```
+git push origin my_new_improvement
+```
+Finally, when you think it's ready to be included in the main branch create a pull request (if you push your changes from the command line, Github should give you a link that you can click to automatically do this.) 
+
+If you think the changes you are making might benefit from discussion, create an "Issue" under the [Issues](https://github.com/AutoDQM/AutoDQM_ML/issues) tab.
