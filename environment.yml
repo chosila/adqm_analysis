@@ -1,0 +1,14 @@
+name: autodqm-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pyaml
+  - uproot
+  - xrootd
+  - xgboost
+  - tensorflow
+  - rich
+  - pandas
+  - pyarrow
+  - scipy
