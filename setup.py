@@ -17,6 +17,8 @@ setuptools.setup(
     packages=[
         "autodqm_ml",
         "autodqm_ml/data_prep",
+        "autodqm_ml/data_formats",
+        "autodqm_ml/algorithms"
     ],
     scripts=[
         "examples/fetch_data.py"
