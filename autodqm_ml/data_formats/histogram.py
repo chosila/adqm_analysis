@@ -1,6 +1,5 @@
 import numpy
-
-from autodqm_ml.utils import setup_logger
+import logging
 
 class Histogram():
     """
@@ -12,22 +11,18 @@ class Histogram():
     :type data: dict
     :param reference: optional, reference histogram to be compared against
     :type reference: Histogram
-    :param logger: logger to print out various levels of diagnostic info 
-    :type logger: logging.getLogger()
     """
 
     def __init__(self, name, data, reference = None, logger = None):
         self.name = name
         self.data = data
         self.reference = reference
-        self.logger = logger
-
-        if self.logger is None:
-            self.logger = setup_logger("INFO")
 
         self.n_dim = self.data["values"].ndim
         self.n_entries = numpy.sum(self.data["values"]) # FIXME: are all DQM histograms occupancies?
         self.is_normalized = False
+    
+        self.logger = logging.getLogger(__name__)
 
 
     def normalize(self):
