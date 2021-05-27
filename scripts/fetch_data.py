@@ -50,7 +50,6 @@ fetcher = DataFetcher(
         contents = args.contents,
         years = args.years,
         datasets = args.datasets,
-        logger = logger,
         short = args.short
 )
 

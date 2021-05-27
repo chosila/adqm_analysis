@@ -1,4 +1,4 @@
-from autodqm_ml.utils import setup_logger
+import logging
 
 class AnomalyDetectionAlgorithm():
     """
@@ -6,16 +6,11 @@ class AnomalyDetectionAlgorithm():
     including ks-test, pull-value test, pca, autoencoder, etc.
     :param name: name to identify this anomaly detection algorithm
     :type name: str
-    :param logger: logger to print out various levels of diagnostic info 
-    :type logger: logging.getLogger()
     """
 
-    def __init__(self, name, logger = None):
+    def __init__(self, name):
         self.name = name
-        self.logger = logger
-
-        if self.logger is None:
-            self.logger = setup_logger("INFO")
+        self.logger = logging.getLogger(__name__)
 
     def train(self):
         """

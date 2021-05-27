@@ -3,8 +3,7 @@ import os
 import uproot
 import numpy
 import pandas
-
-from autodqm_ml.utils import setup_logger
+import logging
 
 EOS_PATH = "/eos/cms/store/group/comm_dqm/DQMGUI_data/"
 HIST_PATH = "DQMData/Run {}/"
@@ -20,12 +19,10 @@ class DataFetcher():
     :type datasets: str
     :param years: csv list of which years (and eras) to grab data for
     :type years: str
-    :param logger: logger to print out various levels of diagnostic info
-    :type logger: logging.getLogger(), optional
     :param short: flag to just run over a few files (for debugging)
     :type short: bool
     """
-    def __init__(self, tag, contents, years, datasets, logger = None, short = False):
+    def __init__(self, tag, contents, years, datasets, short = False):
         self.tag = tag
 
         with open(contents, "r") as f_in:
@@ -33,12 +30,10 @@ class DataFetcher():
 
         self.years = years.split(",")
         self.datasets = datasets.split(",")
-        self.logger = logger
-
-        if self.logger is None:
-            self.logger = setup_logger("DEBUG", "log.txt")
-
         self.short = short
+
+        print(__name__)
+        self.logger = logging.getLogger(__name__)
 
 
     def run(self):

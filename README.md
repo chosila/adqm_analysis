@@ -64,6 +64,21 @@ logger.info(<message>) # printed out only in INFO level
 logger.debug(<message>) # printed out in both INFO and DEBUG levels
 ```
 
+It is only necessary to explicit create the logger with `setup_logger` once (likely in your main script). Submodules of `autodqm_ml` should initialize loggers as:
+```
+import logging
+logger = logging.getLogger(__name__)
+```
+If a logger has been created in your main script with `setup_logger`, the line `logger = logging.getLogger(__name__)` will automatically detect the existing logger and inherit its settings (print-out level and log file).
+
+Some good rules of thumb for logging:
+```
+logger.info # important & succint info that user should always see
+logger.debug # less important info, or info that will have many lines of print-out
+logger.warning # for something that may result in unintended behavior but isn't necessarily wrong
+logger.exception # for something where the user definitely made a mistake
+```
+
 ### Contributing
 To contribute anything beyond a minor bug fix or modifying documentation/comments, first check out a new branch:
 ```
