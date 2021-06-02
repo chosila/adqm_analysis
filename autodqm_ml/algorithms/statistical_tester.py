@@ -58,6 +58,7 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
 
         return decision, score 
 
+
     def pull_value_test(self, histogram, threshold):
         """
         Perform pull value test on two 2d histograms.

@@ -1,4 +1,5 @@
 import logging
+logger = logging.getLogger(__name__)
 
 class AnomalyDetectionAlgorithm():
     """
@@ -10,7 +11,6 @@ class AnomalyDetectionAlgorithm():
 
     def __init__(self, name):
         self.name = name
-        self.logger = logging.getLogger(__name__)
 
     def run(self, histograms, threshold, metadata = {}): 
         """
@@ -27,7 +27,7 @@ class AnomalyDetectionAlgorithm():
         # Check that results are in the proper format
         if not isinstance(results, dict):
             message = "The output of any AnomalyDetectionAlgorithm.evaluate method should be a dictionary, not %s as you have passed." % (str(type(results)))
-            self.logger.exception(message)
+            logger.exception(message)
             raise TypeError(message)
 
         # Check that there is an entry for each histogram
@@ -36,14 +36,14 @@ class AnomalyDetectionAlgorithm():
 
         if not names_in == names_out:
             message = "The list of input histograms does not match the list of output histograms! Input: %s, Output: %s" % (names_in, names_out)
-            self.logger.exception(message)
+            logger.exception(message)
             raise AssertionError(message)
 
         # Check that each histogram has the proper results
         for name, result in results.items():
             if "decision" not in result or "score" not in result.keys():
                 message = "Each histogram name should correspond to a dictionary with two entries, 'decision' and 'name', not %s as is the case for histogram %s" % (str(result.keys()), name)
-                self.logger.exception(message)
+                logger.exception(message)
                 raise AssertionError(message)
 
         return results
