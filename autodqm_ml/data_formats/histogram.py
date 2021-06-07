@@ -1,5 +1,7 @@
 import numpy
+
 import logging
+logger = logging.getLogger(__name__)
 
 class Histogram():
     """
@@ -13,17 +15,24 @@ class Histogram():
     :type reference: Histogram
     """
 
-    def __init__(self, name, data, reference = None, logger = None):
+    def __init__(self, name, data, reference = None):
         self.name = name
         self.data = data
         self.reference = reference
 
-        self.n_dim = self.data["values"].ndim
-        self.n_entries = numpy.sum(self.data["values"]) # FIXME: are all DQM histograms occupancies?
+        self.shape = self.data.shape
+        self.n_dim = len(self.data.shape)
+        self.n_bins = 1.
+        for x in self.shape:
+            self.n_bins *= x
+        if not (self.n_dim == 1 or self.n_dim == 2):
+            message = "[Histogram : __init__] Only 1d and 2d histograms are supported. For histogram '%s', we found shape %s, from which we infer %d dimensions." % (self.name, str(self.shape), self.n_dim)
+            logger.exception(message)
+            raise ValueError(message)
+
+        self.n_entries = numpy.sum(self.data) 
         self.is_normalized = False
     
-        self.logger = logging.getLogger(__name__)
-
 
     def normalize(self):
         """
@@ -34,8 +43,8 @@ class Histogram():
 
         if self.n_entries <= 0:
             message = "[Histogram : normalize] Histogram must have > 0 entries to normalize but histogram %s has %d entries." % (self.name, self.n_entries)
-            self.logger.exception(message)
+            logger.exception(message)
             raise Exception(message)
 
-        self.data["values"] = self.data["values"] / self.n_entries
+        self.data = self.data / float(self.n_entries)
         self.is_normalized = True

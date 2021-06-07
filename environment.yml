@@ -5,9 +5,10 @@ dependencies:
   - python=3.8
   - pyaml
   - uproot
+  - numpy
+  - tensorflow
   - xrootd
   - xgboost
-  - tensorflow
   - rich
   - pandas
   - pyarrow

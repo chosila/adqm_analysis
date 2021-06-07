@@ -9,7 +9,7 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
     including PCA and Autoencoder.
     """
     def __init__(self, name):
-        super(AutoEncoder, self).__init__(name)
+        super(MLAlgorithm, self).__init__(name)
         self.model = None
 
 
