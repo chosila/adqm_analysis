@@ -20,9 +20,6 @@ setuptools.setup(
         "autodqm_ml/data_formats",
         "autodqm_ml/algorithms"
     ],
-    scripts=[
-        "examples/fetch_data.py"
-    ],
     install_requires=get_dependencies("environment.yml"),
     python_requires=">=3.8,!=3.9",
 )

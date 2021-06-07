@@ -18,6 +18,12 @@ Dependencies are listed in ```environment.yml```. Install with
 conda env create -f environment.yml
 ```
 
+Note: if you are running on `lxplus`, you may run into permissions errors. I was able to fix this manually by doing:
+```
+chmod 755 -R /afs/cern.ch/user/s/<your_user_name>/.conda
+```
+and then rerunning the command to create the `conda` env.
+
 **3. Install autodqm-ml**
 
 **Users** can install with:
