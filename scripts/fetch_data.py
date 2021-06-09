@@ -1,3 +1,4 @@
+import os
 import argparse
 
 from autodqm_ml.data_prep.data_fetcher import DataFetcher
@@ -14,19 +15,14 @@ parser.add_argument(
 parser.add_argument(
    "--contents",
    help = "path to json file containing subsystems and histograms",
-   type = str
-)
-parser.add_argument(
-   "--years",
-   help = "which years to grab data for (csv list)",
    type = str,
-   default = "2016,2017,2018"
+   default = "../metadata/histogram_lists/csc_emtf.json"
 )
 parser.add_argument(
     "--datasets",
-    help = "which datasets to grab data for (csv list)",
+    help = "path to json file containing specified datasets",
     type = str,
-    default = "SingleMuon"
+    default = "../metadata/dataset_lists/SingleMuon_UL1718.json"
 )
 parser.add_argument(
    "--debug",
@@ -41,6 +37,8 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+os.system("mkdir -p output/")
+
 logger_mode = "DEBUG" if args.debug else "INFO"
 log_file = "output/fetch_data_log_%s.txt" % args.tag
 logger = setup_logger(logger_mode, log_file)
@@ -48,7 +46,6 @@ logger = setup_logger(logger_mode, log_file)
 fetcher = DataFetcher(
         tag = args.tag,
         contents = args.contents,
-        years = args.years,
         datasets = args.datasets,
         short = args.short
 )
