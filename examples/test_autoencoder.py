@@ -1,5 +1,5 @@
 import pandas
-file = "../scripts/output/CSC_EMTF_InitialList_4May2021_SingleMuon_short.pkl"
+file = "CSC_EMTF_InitialList_4May2021_SingleMuon_short.pkl"
 df = pandas.read_pickle(file)
 
 from autodqm_ml.utils import setup_logger
@@ -21,6 +21,4 @@ names = [
 ]
 
 a = AutoEncoder(name = "test")
-a.train(histograms = names, file = file, config = {}, n_epochs = 1000, batch_size = 100)
-
-
+a.train(histograms = names, file = file, config = {}, n_epochs = 10, batch_size = 100)
