@@ -1,0 +1,11 @@
+{
+    "primary_datasets" : ["SingleMuon"],
+    "years" : {
+        "2017" : {
+            "productions" : ["UL2017"]
+        },
+        "2018" : {
+            "productions" : ["UL2018"]
+        }
+    }
+}
