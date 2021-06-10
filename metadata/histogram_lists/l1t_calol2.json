@@ -1,0 +1,57 @@
+{
+    "L1TCaloL2CenJets" : [
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsEta",
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsPhi",
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsOcc"
+    ],
+    "L1TCaloL2ForJets" : [
+       	"/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsEta",
+        "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsPhi",
+        "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsOcc"
+    ],
+    "L1TCaloL2IsoEG" : [
+       	"/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsEta",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsPhi",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsOcc"
+    ],
+    "L1TCaloL2IsoTau" : [
+        "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausEta",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausPhi",
+        "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausOcc"
+    ],
+    "L1TCaloL2NonIsoEG" : [
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsEta",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsPhi",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsOcc"
+    ],
+    "L1TCaloL2IsoTau" : [
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausEtEtaPhi",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausEta",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausPhi",
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausOcc"
+    ],
+    "L1TCaloL2EnergySums" : [
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/EtSumBxOcc",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/ETTRank",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/HTTRank",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/METHFRank",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/METPhi",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/METHFPhi",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/METRank",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/MHTPhi",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/MHTRank",
+        "/Run summary/L1TStage2CaloLayer2/Energy-Sums/MHTHFPhi",
+       	"/Run summary/L1TStage2CaloLayer2/Energy-Sums/MHTHFRank"
+    ]
+}
