@@ -1,59 +1,47 @@
 {
-    "L1TCaloL2CenJets" : [
+    "L1T" : [
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsBxOcc",
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsEta",
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsPhi",
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsOcc",
         "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsQual",
-        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsRank"
-    ],
-    "L1TCaloL2ForJets" : [
+        "/Run summary/L1TStage2CaloLayer2/Central-Jets/CenJetsRank",
        	"/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsBxOcc",
         "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsEta",
         "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsPhi",
         "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsOcc",
         "/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsQual",
-       	"/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsRank"
-    ],
-    "L1TCaloL2IsoEG" : [
+       	"/Run summary/L1TStage2CaloLayer2/Forward-Jets/ForJetsRank",
        	"/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsBxOcc",
         "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsEta",
         "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsPhi",
         "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsOcc",
         "/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsQual",
-       	"/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsRank"
-    ],
-    "L1TCaloL2IsoTau" : [
+       	"/Run summary/L1TStage2CaloLayer2/Isolated-EG/IsoEGsRank",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausBxOcc",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausEta",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausPhi",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausOcc",
         "/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausQual",
-       	"/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausRank"
-    ],
-    "L1TCaloL2NonIsoEG" : [
+       	"/Run summary/L1TStage2CaloLayer2/Isolated-Tau/IsoTausRank",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsBxOcc",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsEta",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsPhi",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsOcc",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsQual",
-        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsRank"
-    ],
-    "L1TCaloL2IsoTau" : [
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-EG/NonIsoEGsRank",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausBxOcc",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausEtEtaPhi",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausEta",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausPhi",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausOcc",
         "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausQual",
-        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausRank"
-    ],
-    "L1TCaloL2EnergySums" : [
+        "/Run summary/L1TStage2CaloLayer2/NonIsolated-Tau/TausRank",
         "/Run summary/L1TStage2CaloLayer2/Energy-Sums/EtSumBxOcc",
         "/Run summary/L1TStage2CaloLayer2/Energy-Sums/ETTRank",
         "/Run summary/L1TStage2CaloLayer2/Energy-Sums/ETTEMRank",
@@ -73,3 +61,4 @@
         "/Run summary/L1TStage2CaloLayer2/Energy-Sums/TowCount"
     ]
 }
+
