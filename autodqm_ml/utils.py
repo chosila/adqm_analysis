@@ -3,6 +3,8 @@ Taken from HiggsDNA project: https://gitlab.cern.ch/HiggsDNA-project/HiggsDNA
 Original author: Massimiliano Galli
 """
 
+import os
+
 import logging
 from rich.logging import RichHandler
 from rich.console import Console
@@ -46,3 +48,26 @@ def setup_logger(level="INFO", logfile=None):
         logger.addHandler(file_handler)
 
     return logger
+
+
+def expand_path(relative_path):
+    """
+    Convert a relative path (assumed to be the path under AutoDQM_ML/) into an absolute path.
+
+    :param relative_path: path under AutoDQM_ML/
+    :type relative_path: str
+    :return: absolute path
+    :rtype: str
+    """
+
+    dir = os.path.dirname(__file__)
+    subdirs = dir.split("/")
+
+    base_path = ""
+    for subdir in subdirs:
+        base_path += subdir + "/"
+        if subdir == "AutoDQM_ML":
+            break
+
+    return base_path + relative_path
+

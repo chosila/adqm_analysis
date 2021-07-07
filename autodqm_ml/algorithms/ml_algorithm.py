@@ -13,6 +13,22 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         self.model = None
 
 
+    
+    def predict(self, **kwargs):
+        """
+
+        """
+        raise NotImplementedError()
+
+
+    def make_plots(self, N = 1):
+        """
+
+        """
+        raise NotImplementedError()
+
+
+    """
     def evaluate(self, histograms, threshold, metadata):
         if self.model is None:
             message = "[ml_algorithm.py : evaluate] No model has been set for this ML algorithm, cannot evaluate histograms!"
@@ -21,7 +37,7 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         
         results = self.evaluate_with_model(histograms, threshold, metadata)
         return results
-
+    """
 
     def evaluate_with_model(self, histograms, threshold, metadata):
         """
@@ -64,10 +80,12 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         raise NotImplementedError()
 
 
-    def train(self, **kwargs):
+    def train(self, histograms, file, config):
         """
         Abstract method to train an ML model.
 
         """
 
+
         raise NotImplementedError()
+

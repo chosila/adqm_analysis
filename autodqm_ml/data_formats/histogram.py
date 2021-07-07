@@ -15,8 +15,9 @@ class Histogram():
     :type reference: Histogram
     """
 
-    def __init__(self, name, data, reference = None):
+    def __init__(self, data, name = "dummy", reference = None):
         self.name = name
+        self.name_ = name.replace("/", "_").replace(" ", "") # tf doesn't like the "/"s or spaces
         self.data = data
         self.reference = reference
 
@@ -32,7 +33,7 @@ class Histogram():
 
         self.n_entries = numpy.sum(self.data) 
         self.is_normalized = False
-    
+   
 
     def normalize(self):
         """
@@ -43,8 +44,8 @@ class Histogram():
 
         if self.n_entries <= 0:
             message = "[Histogram : normalize] Histogram must have > 0 entries to normalize but histogram %s has %d entries." % (self.name, self.n_entries)
-            logger.exception(message)
-            raise Exception(message)
+            #logger.warning(message)
+            return
 
         self.data = self.data / float(self.n_entries)
         self.is_normalized = True
