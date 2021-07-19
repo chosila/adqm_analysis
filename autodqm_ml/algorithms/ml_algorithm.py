@@ -21,23 +21,29 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         raise NotImplementedError()
 
 
+    def plot_original_vs_reconstructed(self, histograms, N = None):
+        """
+        Make plots of original and reconstructed histograms for ML algorithm.
+        Case 1:
+            - user supplies a list of histogram names and a number N of runs to make plots for
+        Case 2:
+            - user supplies a list of Histogram objects to make plots for
+        """
+        if N is not None: # we will randomly select N runs from test set to plot original vs. reconstructed
+            original_hists = self.make_inputs(split = "test", N = N)
+            reconstructed_hists = self.predict(original_hists)
+
+        else: # user has supplied specific histograms to make plots for
+            original_hists = self.make_inputs(histograms)
+            reconstructed_hists = self.predict(original_hists)
+
+
     def make_plots(self, N = 1):
         """
 
         """
         raise NotImplementedError()
 
-
-    """
-    def evaluate(self, histograms, threshold, metadata):
-        if self.model is None:
-            message = "[ml_algorithm.py : evaluate] No model has been set for this ML algorithm, cannot evaluate histograms!"
-            logger.exception(message)
-            raise ValueError(message)
-        
-        results = self.evaluate_with_model(histograms, threshold, metadata)
-        return results
-    """
 
     def evaluate_with_model(self, histograms, threshold, metadata):
         """
@@ -85,7 +91,6 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         Abstract method to train an ML model.
 
         """
-
 
         raise NotImplementedError()
 

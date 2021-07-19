@@ -58,7 +58,7 @@ class AutoEncoder(MLAlgorithm):
 
     def evaluate_run(self, histograms, threshold = None, reference = None, metadata = {}):
         if threshold is None:
-            threshold = 0.00001
+            threshold = 0.00001 # FIXME hard-coded for now
         inputs, outputs = self.make_inputs(histograms = histograms)
         pred = self.model.predict(inputs, batch_size = 1024)
 
@@ -80,20 +80,7 @@ class AutoEncoder(MLAlgorithm):
         return results
 
                     
-
-    def make_plots(self, N = 1):
-        predictions = self.predict(N)
-        #for i in range(N):
-        #    for histogram in self.histogram_info:
-        #        self.plot_original_vs_reconstructed(
-        #                original = inputs[histogram.name_][i],
-        #                reconstructed = predictions[histogram.name_][i],
-        #                histogram_info = histogram,
-        #                save_name = "plots/%s_%s_%d.pdf" % (self.name, histogram.name_, i)
-        #        )
-
-
-    def make_inputs(self, split = None, histograms = None):
+    def make_inputs(self, split = None, histograms = None, N = None):
         """
 
         """
