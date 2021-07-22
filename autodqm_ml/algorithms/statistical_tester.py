@@ -1,4 +1,4 @@
-from scipy.stats import kstest
+from scipy.stats import ks_2samp
 
 from autodqm_ml.algorithms.anomaly_detection_algorithm import AnomalyDetectionAlgorithm
 
@@ -8,8 +8,11 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
     For 1d histograms, it will perform a ks-test.
     For 2d histograms, it will perform a pull-value test.
     """
-    def evaluate(self, histograms, threshold, metadata = {}):
+    def evaluate_run(self, histograms, threshold = None, metadata = {}):
         results = {}
+
+        if threshold is None:
+            threshold = 0.1
 
         for histogram in histograms:
             # Check that histogram has a reference
@@ -19,20 +22,21 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
                 raise Exception(message)
  
             # Normalize histogram (if not already normalized)
-            if metadata["normalize"]:
-                if not histogram.is_normalized:
-                    histogram.normalize()
-                if not histogram.reference.is_normalized:
-                    histogram.reference.normalize()
+            #if metadata["normalize"]:
+            #    if not histogram.is_normalized:
+            #        histogram.normalize()
+            #    if not histogram.reference.is_normalized:
+            #        histogram.reference.normalize()
             
             if histogram.n_dim == 1:
-                decision, score = self.ks_test(histogram, threshold)
+                decision, score, p_value = self.ks_test(histogram, threshold)
             elif histogram.n_dim == 2:
-                decision, score = self.pull_value_test(histogram, threshold)
+                decision, score, p_value = self.pull_value_test(histogram, threshold)
 
             results[histogram.name] = {
                     "decision" : decision,
-                    "score" : score
+                    "score" : score,
+                    "p-value" : p_value
             }
 
         return results
@@ -48,15 +52,14 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
         :type threshold: float
         """
 
-        ks_test_results = kstest(
-                histogram.reference.data["values"],
-                histogram.data["values"]
+        score, p_value = ks_2samp(
+                histogram.reference.data,
+                histogram.data
         )
 
-        score = ks_test_results[0]
         decision = score > threshold
 
-        return decision, score 
+        return decision, score, p_value
 
 
     def pull_value_test(self, histogram, threshold):
@@ -70,4 +73,4 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
         """
 
         # TODO
-        return False, 0
+        return False, 0, 0

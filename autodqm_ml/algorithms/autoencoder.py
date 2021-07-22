@@ -9,33 +9,35 @@ import tensorflow.keras as keras
 
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
+#from autodqm_ml.plotting.plots import plot_original_vs_reconstructed
 
 class AutoEncoder(MLAlgorithm):
     """
     Autoencoder base class.
     """
-    def evaluate_with_model(self, histograms, threshold, metadata):
-        results = {}
-
-        return results
-
-
     def load_model(self, model_file, **kwargs):
         """
+        TODO
+        """
+        pass
 
+
+    def save_model(self, model_file, **kwargs):
+        """
+        TODO
+        """
+        pass
+
+
+    def train(self, n_epochs = 1000, batch_size = 128, config = {}):
         """
 
-
-    def train(self, histograms, file, config, n_epochs = 10, batch_size = 128):
         """
-
-        """
-        self.training_file = file
-
-        inputs, outputs = self.load_data(histograms)
+        inputs, outputs = self.make_inputs(split = "train")
+        inputs_val, outputs_val = self.make_inputs(split = "test")
 
         self.model = AutoEncoder_DNN(self.histogram_info, **config).model()
-
+       
         self.model.compile(
                 optimizer = keras.optimizers.Adam(), 
                 loss = keras.losses.MeanSquaredError()
@@ -44,46 +46,69 @@ class AutoEncoder(MLAlgorithm):
         self.model.fit(
                 inputs,
                 outputs,
+                validation_data = (inputs_val, outputs_val),
+                callbacks = [keras.callbacks.EarlyStopping(patience = 3)],
                 epochs = n_epochs,
                 batch_size = batch_size
         )
 
-        # TODO: save model
+    
+    def predict(self, batch_size = 1024):
+        inputs, outputs = self.make_inputs(split = "test")
+        return self.model.predict(inputs, batch_size = batch_size)
 
 
-    def load_data(self, histograms):
+    def evaluate_run(self, histograms, threshold = None, reference = None, metadata = {}):
+        if threshold is None:
+            threshold = 0.00001 # FIXME hard-coded for now
+        inputs, outputs = self.make_inputs(histograms = histograms)
+        pred = self.model.predict(inputs, batch_size = 1024)
+
+        sse = self.model.evaluate(inputs, outputs, batch_size = 1024) 
+
+        results = {}
+        for idx, histogram in enumerate(self.histogram_info):
+            score = sse[idx+1] 
+            results[histogram.name] = {
+                    "score" : score,
+                    "decision" : score > threshold
+            }
+
+        results["global"] = {
+                "score" : sse[0],
+                "decision" : sse[0] > threshold
+        }
+
+        return results
+
+                    
+    def make_inputs(self, split = None, histograms = None, N = None):
         """
-        1. Load input file
-        2. Get metadata for each of the histograms
-        3. Create arrays
 
         """
-        df = pandas.read_pickle(self.training_file)
-
-        # Get metadata from 0th entry in dataframe
-        self.histogram_info = []
-        for histogram in histograms:
-            h = Histogram(
-                name = histogram,
-                data = df[histogram][0]
-            )
-            h.name_ = h.name.replace("/", "_").replace(" ", "") # tf doesn't like the "/"s or spaces
-            print(h.name_)
-            self.histogram_info.append(h)
-            logger.debug("[AutoEncoder : load_data] Found histogram '%s' in input file '%s', with details: shape: %s, n_dim: %d" % (histogram, self.training_file, str(h.shape), h.n_dim))
-            
-
-        # Create arrays
         inputs = {}
         outputs = {}
-        for histogram in self.histogram_info:
-            # Normalize
-            for i in range(len(df)): # TODO: come up with more efficient way than looping through df
-                h = Histogram(name = "dummy", data = df[histogram.name][i])
-                h.normalize()
-                df[histogram.name][i] = h.data
-            data = list(df[histogram.name].values)
-            data = tf.convert_to_tensor(data) # TODO: figure out how to deal with 2d histograms where n_bins_x != n_bins_y
+
+        if split is None and histograms is not None:
+            names_in = [h.name for h in histograms]
+            if not names_in == self.histograms:
+                logger.exception("[AutoEncoder : make_inputs] List of histograms given (%s) does not match the list of histograms this AutoEncoder was created with (%s)." % (names_in, self.histograms))
+                raise ValueError()
+
+            hists = histograms
+
+        elif split is not None and histograms is None:
+            hists = self.histogram_info
+
+
+        for histogram in hists:
+            if split is not None and histograms is None:
+                data = self.data[histogram.name]["X_%s" % split]
+            
+            elif split is None and histograms is not None:
+                data = [histogram.data]
+
+            data = tf.convert_to_tensor(data)
             inputs["input_" + histogram.name_] = data
             outputs["output_" + histogram.name_] = data
 
@@ -104,7 +129,7 @@ class AutoEncoder_DNN(keras.models.Model):
     :param n_latent_dim: dimensionality of latent space
     :type n_latent_dim: int
     """
-    def __init__(self, histogram_info, n_hidden_layers = 2, n_nodes = 200, n_latent_dim = 20, n_filters = 16, **kwargs):
+    def __init__(self, histogram_info, n_hidden_layers = 2, n_nodes = 100, n_latent_dim = 20, n_filters = 16, **kwargs):
         super(AutoEncoder_DNN, self).__init__()
 
         self.n_histograms = len(histogram_info)
@@ -131,16 +156,17 @@ class AutoEncoder_DNN(keras.models.Model):
 
         layer = encoders_merged
         for i in range(self.n_hidden_layers):
-            activation = None if i == (n_hidden_layers - 1) else "relu" # no activation on last step
-            units = n_nodes if i == (n_hidden_layers - 1) else n_latent_dim
-            name = "latent_representation" if i == (n_hidden_layers - 1) else "hidden_%d" % i
             layer = keras.layers.Dense(
-                    units = units,
-                    activation = activation,
-                    name = name 
+                    units = self.n_nodes,
+                    activation = "relu",
+                    name = "hidden_%d" % i,
             )(layer)
 
-        latent_representation = layer
+        latent_representation = keras.layers.Dense(
+                units = self.n_latent_dim,
+                activation = None,
+                name = "latent_representation"
+        )(layer)
         
         for histogram in histogram_info:
             output = self.build_decoder(histogram, latent_representation)
@@ -224,20 +250,3 @@ class AutoEncoder_DNN(keras.models.Model):
 
         output = layer
         return output
-
-
-    def build_2d_encoder(self, histogram):
-        """
-        TODO
-        """
-        return
-
-    
-    def build_2d_decoder(self, histogram):
-        """
-        TODO
-        """
-        return
-
-
-

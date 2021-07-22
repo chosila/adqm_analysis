@@ -223,12 +223,12 @@ class DataFetcher():
         try:
             uproot.open(file)
         except:
-            logger.info("[DataFetcher : load_data] ERROR loading file %s" % file)
+            logger.warning("[DataFetcher : load_data] Problem loading file '%s', it might be corrupted. We will just skip this file." % file)
             return None
 
         with uproot.open(file) as f:
             if f is None:
-                logger.info("[DataFetcher : load_data] ERROR loading file %s" % file)
+                logger.warning("[DataFetcher : load_data] Problem loading file '%s', it might be corrupted. We will just skip this file." % file)
                 return None
 
             for subsystem, histogram_list in contents.items(): 
