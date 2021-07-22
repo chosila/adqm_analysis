@@ -47,12 +47,3 @@ for run in test:
     for x in [s, p, a]:
         logger.info("Algorithm: %s, results: %s" % (x.name, results[x.name][run]))
 
-"""
-for x in [s, p, a]:
-    results = x.evaluate(
-            runs = test,
-            reference = ref,
-            histograms = ['L1T//Run summary/L1TStage2EMTF/emtfTrackEta'],
-
-    )
-"""

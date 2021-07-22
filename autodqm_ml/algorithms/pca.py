@@ -13,6 +13,18 @@ class PCA(MLAlgorithm):
     """
     PCA-based anomaly detector
     """
+    def load_model(self, model_file, **kwargs):
+        """
+        TODO
+        """
+        pass
+
+
+    def save_model(self, model_file, **kwargs):
+        """
+        TODO
+        """
+        pass 
 
     
     def train(self, n_components = 2, config = {}):
@@ -62,4 +74,6 @@ class PCA(MLAlgorithm):
             }
 
         return results
+
+    
 

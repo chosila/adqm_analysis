@@ -15,16 +15,18 @@ class AutoEncoder(MLAlgorithm):
     """
     Autoencoder base class.
     """
-    def evaluate_with_model(self, histograms, threshold, metadata):
-        results = {}
-
-        return results
-
-
     def load_model(self, model_file, **kwargs):
         """
-
+        TODO
         """
+        pass
+
+
+    def save_model(self, model_file, **kwargs):
+        """
+        TODO
+        """
+        pass
 
 
     def train(self, n_epochs = 1000, batch_size = 128, config = {}):

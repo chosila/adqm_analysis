@@ -29,13 +29,15 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         Case 2:
             - user supplies a list of Histogram objects to make plots for
         """
-        if N is not None: # we will randomly select N runs from test set to plot original vs. reconstructed
-            original_hists = self.make_inputs(split = "test", N = N)
-            reconstructed_hists = self.predict(original_hists)
+        # TODO
 
-        else: # user has supplied specific histograms to make plots for
-            original_hists = self.make_inputs(histograms)
-            reconstructed_hists = self.predict(original_hists)
+        #if N is not None: # we will randomly select N runs from test set to plot original vs. reconstructed
+        #    original_hists = self.make_inputs(split = "test", N = N)
+        #    reconstructed_hists = self.predict(original_hists)
+        #
+        #else: # user has supplied specific histograms to make plots for
+        #    original_hists = self.make_inputs(histograms)
+        #    reconstructed_hists = self.predict(original_hists)
 
 
     def make_plots(self, N = 1):
@@ -84,6 +86,17 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
         :type model_file: str
         """
         raise NotImplementedError()
+
+
+    def save_model(self, model_file, **kwargs):
+        """
+        Abstract method to load an ML model from a file.
+
+        :param model_file: file containing weights of a trained model
+        :type model_file: str
+        """
+        raise NotImplementedError() 
+
 
 
     def train(self, histograms, file, config):

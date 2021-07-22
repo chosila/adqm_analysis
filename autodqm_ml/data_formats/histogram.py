@@ -49,3 +49,9 @@ class Histogram():
 
         self.data = self.data / float(self.n_entries)
         self.is_normalized = True
+
+    def clean(self):
+        """
+        TODO
+        """
+        pass
