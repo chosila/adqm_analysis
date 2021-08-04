@@ -1,5 +1,6 @@
 import pandas
 import numpy
+import json
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,19 +15,46 @@ class PCA(MLAlgorithm):
     PCA-based anomaly detector
     """
     def load_model(self, model_file, **kwargs):
-        """
-        TODO
-        """
-        pass
+        self.model = {}
+        for histogram in self.histogram_info:
+            name = histogram.name
+            filename = name.split('/')[-1]
+            pca = decomposition.PCA(
+                    #n_components = n_components,
+                    random_state = 0, # fixed for reproducibility                                                                                                   
+            )
+            pcaParams = json.load(open(f'{model_file}/{filename}.json','r'))
+            pca.components_ = numpy.array(pcaParams['components_'])
+            pca.explained_variance_ = numpy.array(pcaParams['explained_variance_'])
+            pca.explained_variance_ratio_ = numpy.array(pcaParams['explained_variance_ratio_'])
+            pca.singular_values_ = numpy.array(pcaParams['singular_values_'])
+            pca.mean_ = numpy.array(pcaParams['mean_'])
+            pca.n_components_ = numpy.array(pcaParams['n_components_'])
+            pca.n_features_ = numpy.array(pcaParams['n_features_'])
+            pca.n_samples_ = numpy.array(pcaParams['n_samples_'])
+            pca.noise_variance_ = numpy.array(pcaParams['noise_variance_'])
+            self.model[name] = pca
 
 
     def save_model(self, model_file, **kwargs):
-        """
-        TODO
-        """
-        pass 
-
-    
+        for histogram in self.histogram_info:
+            name = histogram.name
+            pca = self.model[name]
+            filename = name.split('/')[-1]
+            pcaParams = {
+                'name' : filename,
+                'components_' : pca.components_.tolist(),
+                'explained_variance_' : pca.explained_variance_.tolist(),
+                'explained_variance_ratio_' : pca.explained_variance_ratio_.tolist(),
+                'singular_values_' : pca.singular_values_.tolist(),
+                'mean_' : pca.mean_.tolist(),
+                'n_components_' : pca.n_components_,
+                'n_features_' : pca.n_features_, 
+                'n_samples_' : pca.n_samples_, 
+                'noise_variance_' : pca.noise_variance_
+            }
+            json.dump(pcaParams, open(f'{model_file}/{filename}.json','w'),indent=4)
+        
     def train(self, n_components = 2, config = {}):
         """
 
@@ -46,6 +74,24 @@ class PCA(MLAlgorithm):
             pca.fit(inputs)
             self.model[name] = pca
 
+            #------------------------------------
+            #pca.components_ = numpy.zeros_like(pca.components_)
+            # newpca = decomposition.PCA(
+            #         n_components = n_components,
+            #         random_state = 0, # fixed for reproducibility                                                             
+            # )
+            # newpca.components_ = pca.components_ 
+            # newpca.explained_variance_ = pca.explained_variance_ 
+            # newpca.explained_variance_ratio_ = pca.explained_variance_ratio_
+            # newpca.singular_values_ = pca.singular_values_
+            # newpca.mean_ = pca.mean_
+            # newpca.n_components_ = pca.n_components_
+            # newpca.n_features_ = pca.n_features_
+            # newpca.n_samples_ = pca.n_samples_
+            # newpca.noise_variance_ = pca.noise_variance_
+            # 
+            # self.model[name] = newpca
+            #-----------------------------------
 
     def evaluate_run(self, histograms, threshold = None, reference = None, metadata = {}):
         if threshold is None:
