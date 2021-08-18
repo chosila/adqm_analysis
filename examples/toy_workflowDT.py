@@ -13,19 +13,17 @@ logger = setup_logger("INFO")
 
 training_file = 'scripts/output/test_SingleMuon.pkl' #"scripts/output/test_9Jun2021_SingleMuon.pkl"
 histograms = {
-    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/T0_FromSegm_W-1_Sec1_St1" : { "normalize" : True }
-#     "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/h4DSegmNHits_W-1_St1_Sec1" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector1/Station2/h4DSegmNHits_W-1_St2_Sec1" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector1/Station3/h4DSegmNHits_W-1_St3_Sec1" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector1/Station4/h4DSegmNHits_W-1_St4_Sec1" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector2/Station1/h4DSegmNHits_W-1_St1_Sec2" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector2/Station2/h4DSegmNHits_W-1_St2_Sec2" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector2/Station3/h4DSegmNHits_W-1_St3_Sec2" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector2/Station4/h4DSegmNHits_W-1_St4_Sec2" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector3/Station1/h4DSegmNHits_W-1_St1_Sec3" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector3/Station2/h4DSegmNHits_W-1_St2_Sec3" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector3/Station3/h4DSegmNHits_W-1_St3_Sec3" : { "normalize" : True },
-#     "DT/Run summary/02-Segments/Wheel-1/Sector3/Station4/h4DSegmNHits_W-1_St4_Sec3" : { "normalize" : True }
+    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/T0_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/h4DSegmNHits_W-1_St1_Sec1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/T0_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/VDrift_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/h4DSegmNHits_W1_St1_Sec1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/T0_FromSegm_W1_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/VDrift_FromSegm_W1_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/h4DSegmNHits_W0_St1_Sec1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/T0_FromSegm_W0_Sec1_St1" : { "normalize" : True },
+    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/VDrift_FromSegm_W0_Sec1_St1" : { "normalize" : True }
+
 }
 
 #s = StatisticalTester("my_stat_tester")
@@ -58,7 +56,7 @@ for x in [p]:#[s, p, a]:
             runs = test,
             reference = ref,
             histograms = list(histograms.keys())#['DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/h4DSegmNHits_W-1_St1_Sec1']
-    `)
+    )
     
     x.plot(runs = test, 
            reference = ref, 

@@ -1,8 +1,11 @@
 import pandas
+import numpy
 from sklearn.model_selection import train_test_split
 
 from autodqm_ml import utils
 from autodqm_ml.data_formats.histogram import Histogram
+
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,7 +37,7 @@ class AnomalyDetectionAlgorithm():
 
         
 
-    def load_data(self, file = None, histograms = {}, train_frac = 0.0):
+    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins=True, remove_low_stat=True):
         """
 
         """
@@ -65,6 +68,16 @@ class AnomalyDetectionAlgorithm():
 
         # Extract actual histogram data
         for histogram, histogram_info in histograms.items():
+            #----------------------------------------
+            # remove low stat hists if required 
+            if remove_low_stat: 
+                hd = numpy.stack(df[histogram].values)
+                nbins = hd.shape[1]
+                print(hd)
+                import time
+                time.sleep(1)
+            #----------------------------------------
+
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
@@ -73,10 +86,28 @@ class AnomalyDetectionAlgorithm():
                         h.normalize()
                         df[histogram][i] = h.data
                         if i == 0: 
-                            self.histogram_info.append(h) 
-                
-            data = list(df[histogram].values)
-          
+                            self.histogram_info.append(h)
+            
+            #------------------------------------------
+            # Remove identical bins if required
+            if remove_identical_bins:
+                # identify bad bins
+                hd = numpy.stack(df[histogram].values)
+                nbins = hd.shape[1]
+                bad_bins = numpy.all(hd==numpy.tile(hd[0,:],hd.shape[0]).reshape(hd.shape), axis=0)
+                good_bins = numpy.logical_not(bad_bins)
+                bad_bins = numpy.arange(nbins)[bad_bins]
+                good_bins = numpy.arange(nbins)[good_bins]
+                # remove bad bins
+                cleaned = hd[:, good_bins]
+                data = numpy.split(cleaned, cleaned.shape[0])
+                data = [x.flatten() for x in data]
+                # modify df, so df used for eval matches in dimension
+                df[histogram] = data 
+            else:
+                data = list(df[histogram].values) 
+            #-----------------------------------------
+
             # Split into training/testing events (only relevant for ML methods)
             self.data[histogram] = {}
             if train_frac > 0:

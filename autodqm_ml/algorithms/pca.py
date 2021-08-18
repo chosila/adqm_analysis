@@ -2,7 +2,7 @@ import pandas
 import numpy
 import json
 import matplotlib.pyplot as plt
-from pathlib import Path
+#from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
@@ -12,6 +12,7 @@ from pathlib import Path
 
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
+from autodqm_ml.plotting.plot_tools import plot1D
 
 class PCA(MLAlgorithm):
     """
@@ -119,6 +120,7 @@ class PCA(MLAlgorithm):
         if histograms==None:
             histograms = self.histograms
 
+
         # loop over list of histograms to plot
         for histogram in histograms:#self.histograms:
             # reference histogram
@@ -129,8 +131,7 @@ class PCA(MLAlgorithm):
 
             # loop over runs to plot
             for run in runs:
-                fig,ax=plt.subplots()
-                fig2,ax2 = plt.subplots()
+                
                 h = Histogram(
                             name = histogram,
                             data = self.df[self.df["run_number"] == run][histogram].iloc[0],
@@ -145,7 +146,9 @@ class PCA(MLAlgorithm):
                 # Reconstruct latent representation back in original space                                                                                          
                 reconstructed_hist = self.model[h.name].inverse_transform(transformed_hist)
                 
-                # Take mean squared error between original and reconstructed histogram                                                                                  
+                plot1D(original_hist, reconstructed_hist, run, h.name, threshold)
+
+                '''# Take mean squared error between original and reconstructed histogram                                                                                  
                 sse = numpy.mean(
                         numpy.square(original_hist - reconstructed_hist)
                 )
@@ -169,6 +172,6 @@ class PCA(MLAlgorithm):
                     ax2.set_title(f'SSE {plotname} {run}')
                     fig2.savefig(f'plots/{run}/SSE-{plotname}.png')
                     fig2.clf()
-
+                '''
 
  
