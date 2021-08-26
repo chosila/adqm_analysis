@@ -78,7 +78,9 @@ class PCA(MLAlgorithm):
 
             inputs = self.data[name]["X_train"]
 
+            
             logger.debug("[PCA : train] Training PCA with %d principal components for histogram '%s' with %d training examples." % (n_components, name, len(inputs)))
+
             pca.fit(inputs)
             self.model[name] = pca
 
@@ -112,7 +114,7 @@ class PCA(MLAlgorithm):
 
 
 
-    def plot(self, runs, reference, histograms=None, threshold=None):
+    def plot(self, runs, histograms=None, threshold=None):
         # threshold hardcoded for now
         if threshold==None:
             threshold = 0.00001
@@ -123,19 +125,12 @@ class PCA(MLAlgorithm):
 
         # loop over list of histograms to plot
         for histogram in histograms:#self.histograms:
-            # reference histogram
-            h_ref = Histogram(
-                    name = "%s_ref_Run%d" % (histogram, reference),
-                    data = self.df[self.df["run_number"] == reference][histogram].iloc[0]
-            )
-
             # loop over runs to plot
             for run in runs:
                 
                 h = Histogram(
                             name = histogram,
                             data = self.df[self.df["run_number"] == run][histogram].iloc[0],
-                            reference = h_ref if reference is not None else None
                     )
                 
                 original_hist = numpy.array(h.data).reshape(1, -1)
@@ -148,30 +143,5 @@ class PCA(MLAlgorithm):
                 
                 plot1D(original_hist, reconstructed_hist, run, h.name, threshold)
 
-                '''# Take mean squared error between original and reconstructed histogram                                                                                  
-                sse = numpy.mean(
-                        numpy.square(original_hist - reconstructed_hist)
-                )
-                
-                # for bin edges
-                binedges = numpy.linspace(0, 1, original_hist.shape[-1])
-                width = binedges[1]-binedges[0]
-                # plot 
-                ax.bar(binedges, original_hist[0], alpha=0.5, label='original', width=width)
-                ax.bar(binedges, reconstructed_hist[0], alpha=0.5, label='reconstructed', width=width)
-                plotname = h.name.split('/')[-1]
-                ax.set_title(f'{plotname} {run}')
-                ax.legend(loc='best')
-                # create directory to save plot
-                Path(f'plots/{run}').mkdir(parents=True, exist_ok=True)
-                fig.savefig(f'plots/{run}/{plotname}.png')
-                fig.clf()
-                
-                if sse > threshold: 
-                    ax2.bar(binedges, numpy.square(original_hist[0] - reconstructed_hist[0]), alpha=0.5, width=width)
-                    ax2.set_title(f'SSE {plotname} {run}')
-                    fig2.savefig(f'plots/{run}/SSE-{plotname}.png')
-                    fig2.clf()
-                '''
 
  

@@ -37,7 +37,7 @@ class AnomalyDetectionAlgorithm():
 
         
 
-    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins=True, remove_low_stat=True):
+    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins=False, remove_low_stat=False):
         """
 
         """
@@ -66,17 +66,14 @@ class AnomalyDetectionAlgorithm():
         self.histograms = list(histograms.keys())
         df = df[DEFAULT_COLUMNS + self.histograms] 
 
+
         # Extract actual histogram data
         for histogram, histogram_info in histograms.items():
-            #----------------------------------------
             # remove low stat hists if required 
             if remove_low_stat: 
-                hd = numpy.stack(df[histogram].values)
-                nbins = hd.shape[1]
-                print(hd)
-                import time
-                time.sleep(1)
-            #----------------------------------------
+                mask = df[histogram].apply(numpy.sum) > 10000
+                df = df[mask]
+                df.reset_index(drop=True, inplace=True)
 
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
@@ -88,7 +85,6 @@ class AnomalyDetectionAlgorithm():
                         if i == 0: 
                             self.histogram_info.append(h)
             
-            #------------------------------------------
             # Remove identical bins if required
             if remove_identical_bins:
                 # identify bad bins
@@ -106,15 +102,14 @@ class AnomalyDetectionAlgorithm():
                 df[histogram] = data 
             else:
                 data = list(df[histogram].values) 
-            #-----------------------------------------
 
             # Split into training/testing events (only relevant for ML methods)
             self.data[histogram] = {}
             if train_frac > 0:
                 X_train, X_test = train_test_split(
-                        data,
-                        train_size = train_frac,
-                        random_state = 0 # fix random state so each histogram gets the same test/train split
+                    data,
+                    train_size = train_frac,
+                    random_state = 0 # fix random state so each histogram gets the same test/train split
                 )
 
                 self.data[histogram]["X_train"] = X_train
@@ -151,6 +146,8 @@ class AnomalyDetectionAlgorithm():
 
 
         self.df = df
+
+
         logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (len(self.histogram_info), self.n_train, self.n_test))
 
         self.data_is_loaded = True

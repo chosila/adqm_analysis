@@ -22,20 +22,20 @@ histograms = {
     "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/VDrift_FromSegm_W1_Sec1_St1" : { "normalize" : True },
     "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/h4DSegmNHits_W0_St1_Sec1" : { "normalize" : True },
     "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/T0_FromSegm_W0_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/VDrift_FromSegm_W0_Sec1_St1" : { "normalize" : True }
-
+    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/VDrift_FromSegm_W0_Sec1_St1" : { "normalize" : True },
 }
 
-#s = StatisticalTester("my_stat_tester")
 p = PCA("my_pca")
 a = AutoEncoder("my_autoencoder")
 
 
-for x in [p]:#[s, p, a]:
+for x in [p]:
     x.load_data(
-            file = training_file,
-            histograms = histograms,
-            train_frac = 0.5
+        file = training_file,
+        histograms = histograms,
+        train_frac = 0.5,
+        remove_identical_bins = True,
+        remove_low_stat = True
     )
 
     if args.load_model:
@@ -45,27 +45,26 @@ for x in [p]:#[s, p, a]:
         x.save_model(model_file='models')
         
 
-test_runs = p.data["run_number"]["test"]#a.data["run_number"]["test"]
+test_runs = p.data["run_number"]["test"]
 test = test_runs[0:10]
 ref = test_runs[10]
 
 
 results = {}
-for x in [p]:#[s, p, a]:
+for x in [p]:
     results[x.name] = x.evaluate(
             runs = test,
             reference = ref,
-            histograms = list(histograms.keys())#['DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/h4DSegmNHits_W-1_St1_Sec1']
+            histograms = list(histograms.keys())
     )
     
     x.plot(runs = test, 
-           reference = ref, 
            histograms = list(histograms.keys())
            )
 
 
 for run in test:
     logger.info("Run: %d" % run)
-    for x in [p]:#[s, p, a]:
+    for x in [p]:
         logger.info("Algorithm: %s, results: %s" % (x.name, results[x.name][run]))
 
