@@ -67,14 +67,18 @@ class AnomalyDetectionAlgorithm():
         df = df[DEFAULT_COLUMNS + self.histograms] 
 
 
-        # Extract actual histogram data
+        
         for histogram, histogram_info in histograms.items():
-            # remove low stat hists if required 
-            if remove_low_stat: 
+            # remove low stat hists if required
+            # needs own loop in case the later hists also cuts df
+            if remove_low_stat:
                 mask = df[histogram].apply(numpy.sum) > 10000
                 df = df[mask]
                 df.reset_index(drop=True, inplace=True)
 
+
+        # Extract actual histogram data
+        for histogram, histogram_info in histograms.items():
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
@@ -157,6 +161,7 @@ class AnomalyDetectionAlgorithm():
         """
 
         """
+
 
         if runs is None:
             runs = self.data["run_number"]["test"]
