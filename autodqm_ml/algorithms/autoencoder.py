@@ -61,6 +61,7 @@ class AutoEncoder(MLAlgorithm):
     def evaluate_run(self, histograms, threshold = None, reference = None, metadata = {}):
         if threshold is None:
             threshold = 0.00001 # FIXME hard-coded for now
+
         inputs, outputs = self.make_inputs(histograms = histograms)
         pred = self.model.predict(inputs, batch_size = 1024)
 
@@ -80,6 +81,34 @@ class AutoEncoder(MLAlgorithm):
         }
 
         return results
+
+
+    #------------------------------------------------------------
+    def plot(self, runs, histograms = None, threshold = None):
+        #if threshold==None:
+        #    threshold = 0.0001
+        #if histograms==None:
+        #    histograms = self.histograms 
+        
+        for run in runs:
+            hists = []
+            for histogram in histograms:
+                h = Histogram(
+                    name = histogram, 
+                    data = self.df[self.df["run_number"] == run][histogram].iloc[0]
+                    )
+                hists.append(h)
+            inputs, outputs = self.make_inputs(histograms = hists)
+            pred = self.model.predict(inputs, batch_size = 1024)
+            
+            sse = self.model.evaluate(inputs, outputs, batch_size = 1024)
+            print('pred: ', type(pred))
+            print('sse: ', type(sse))
+            print('----------------------------------')
+            import time 
+            time.sleep(1)
+        
+    #-----------------------------------------------------------
 
                     
     def make_inputs(self, split = None, histograms = None, N = None):

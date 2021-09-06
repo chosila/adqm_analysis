@@ -37,9 +37,20 @@ class AnomalyDetectionAlgorithm():
 
         
 
-    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins=False, remove_low_stat=False):
+    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins = False, remove_low_stat = False):
         """
+        Loads data from pickle file into ML class. 
 
+        :param file: file containing data to be extracted. File output of fetch_data.py
+        :type file: str
+        :param histograms: names of histograms to be loaded. Must match histogram names used in fetch_data.py. Dictionary in the form {<histogram name> : {"normalize" : <bool>}}.
+        :type histograms: dict. Default histograms = {}
+        :param train_frac: fraction of dataset to be kept as training data. Must be between 0 and 1. 
+        :type train_frac: float. Default train_frac = 0.0
+        :param remove_identical_bins: removes bins that are identical throughout all runs. 
+        :type remove_identical_bins: bool. Default remove_identical_bins = False.
+        :param remove_low_stat: removes runs containing histograms with low stats. Low stat threshold is 10000 events.
+        :type remove_low_stat: bool. remove_low_stat = False
         """
         if self.data_is_loaded:
             return

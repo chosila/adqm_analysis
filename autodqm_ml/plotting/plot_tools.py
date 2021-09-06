@@ -3,6 +3,18 @@ import numpy as np
 from pathlib import Path
 
 def plot1D(original_hist, reconstructed_hist, run, hist_path, threshold):    
+    """
+    plots given original and recontructed histogram. Will plot the SSE plot if the SSE is over the threshold. 
+
+    :param original_hist: original histogram to be plotted  
+    :type original_hist: numpy array of shape (n, 1)
+    :param reconstructed_hist: reconstructed histogram from the ML algorithm
+    :type reconstructed_hist: numpy array of shape (n, 1)
+    :param hist_path: name of histogram
+    :type hist_path: str
+    :param threshold: threshold to determind histogram anomaly
+    :type threshold: int
+    """
     fig, ax = plt.subplots()
     sse = np.mean(np.square(original_hist - reconstructed_hist))
     

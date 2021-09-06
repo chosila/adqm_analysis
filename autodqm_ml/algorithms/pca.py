@@ -19,6 +19,13 @@ class PCA(MLAlgorithm):
     PCA-based anomaly detector
     """
     def load_model(self, model_file, **kwargs):
+        """
+        Load PCA model from pickle file
+
+        :param model_file: folder containing PCA pickles
+        :type model_file: str
+        
+        """
         self.model = {}
         for histogram in self.histogram_info:
             name = histogram.name
@@ -42,6 +49,12 @@ class PCA(MLAlgorithm):
 
 
     def save_model(self, model_file, **kwargs):
+        """
+        Save a trained PCA model
+
+        :param model_file: folder name to place trained PCA pickles
+        :type model_file: str
+        """
         Path(model_file).mkdir(parents=True, exist_ok=True)
         for histogram in self.histogram_info:
             name = histogram.name
@@ -65,7 +78,11 @@ class PCA(MLAlgorithm):
         
     def train(self, n_components = 2, config = {}):
         """
+        Trains new PCA models using loaded data. Must call pca.load_data() before training. 
 
+        :param n_components: number of components to keep. If None, all components are kept. 
+        :type n_components: int, default = 2
+        
         """
 
         self.model = {}
@@ -115,6 +132,16 @@ class PCA(MLAlgorithm):
 
 
     def plot(self, runs, histograms=None, threshold=None):
+        """
+        Plots reconstructed histograms on top of original histograms. If the SSE between the plotted histograms are above the threshold, SSE plots will also be made.Either pca.train() or pca.load_model() must be called before plot. 
+        
+        :param runs: Runs to be plotted
+        :type runs: list of int
+        :param histograms: names of histograms to be plotted. Must match the names used by load_model/train. If histograms = None, all trained histograms in the pca class will be plotted
+        :type histograms: list of str. Default histograms = None
+        :param threshold: threshold to identify histogram as anomalous. If None, threshold will be set to 0.00001. 
+        :type threshold: float, Default threshold = None
+        """
         # threshold hardcoded for now
         if threshold==None:
             threshold = 0.00001
