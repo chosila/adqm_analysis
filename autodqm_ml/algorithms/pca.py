@@ -94,7 +94,6 @@ class PCA(MLAlgorithm):
             )
 
             inputs = self.data[name]["X_train"]
-
             
             logger.debug("[PCA : train] Training PCA with %d principal components for histogram '%s' with %d training examples." % (n_components, name, len(inputs)))
 
@@ -153,8 +152,7 @@ class PCA(MLAlgorithm):
         # loop over list of histograms to plot
         for histogram in histograms:#self.histograms:
             # loop over runs to plot
-            for run in runs:
-                
+            for run in runs:                
                 h = Histogram(
                             name = histogram,
                             data = self.df[self.df["run_number"] == run][histogram].iloc[0],
@@ -168,7 +166,8 @@ class PCA(MLAlgorithm):
                 # Reconstruct latent representation back in original space                                                                                          
                 reconstructed_hist = self.model[h.name].inverse_transform(transformed_hist)
                 
-                plot1D(original_hist, reconstructed_hist, run, h.name, threshold)
+                # plot1D takes array of shape (n,), but original and reco have shape (n,1)
+                plot1D(original_hist.flatten(), reconstructed_hist.flatten(), run, h.name, 'pca', threshold)
 
 
  

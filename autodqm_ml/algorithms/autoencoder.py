@@ -9,6 +9,8 @@ import tensorflow.keras as keras
 
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
+from autodqm_ml.plotting.plot_tools import plot1D
+
 #from autodqm_ml.plotting.plots import plot_original_vs_reconstructed
 
 class AutoEncoder(MLAlgorithm):
@@ -83,12 +85,21 @@ class AutoEncoder(MLAlgorithm):
         return results
 
 
-    #------------------------------------------------------------
     def plot(self, runs, histograms = None, threshold = None):
-        #if threshold==None:
-        #    threshold = 0.0001
-        #if histograms==None:
-        #    histograms = self.histograms 
+        """
+        Plots reconstructed histograms on top of original histograms. If MSE between plotted histograms are ablove the threshold, SE plots will be constructed for the histogram
+
+        :param runs: Runs to be plotted
+        :type runs: list of int
+        :param histograms: names of histograms to be plotted. Must match the names used by load_model/train. If histograms = None, all trained histograms in the pca class will be plotted
+        :type histograms: list of str. Default histograms = None
+        :param threshold: threshold to identify histogram as anomalous. If None, threshold will be set to 0.00001. 
+        :type threshold: float, Default threshold = None
+        """
+        if threshold==None:
+            threshold = 0.0001
+        if histograms==None:
+            histograms = self.histograms 
         
         for run in runs:
             hists = []
@@ -101,16 +112,17 @@ class AutoEncoder(MLAlgorithm):
             inputs, outputs = self.make_inputs(histograms = hists)
             pred = self.model.predict(inputs, batch_size = 1024)
             
-            sse = self.model.evaluate(inputs, outputs, batch_size = 1024)
-            print('pred: ', type(pred))
-            print('sse: ', type(sse))
-            print('----------------------------------')
-            import time 
-            time.sleep(1)
-        
-    #-----------------------------------------------------------
+            #sse = self.model.evaluate(inputs, outputs, batch_size = 1024)
+            
+            inputslist = list(inputs.values())
+            for i,x in enumerate(pred):
+                # plot1D takes (n, ) shape so need to flatten
+                original_hist = inputslist[i].numpy().flatten()
+                # pred[i] has the shape (1,n,1) while iputslist[i] has shape (1,n), so reshape
+                reconstructed_hist = x[:,:,0].flatten()
+                plot1D(original_hist, reconstructed_hist, run, histograms[i], 'autoencoder', threshold)
+                
 
-                    
     def make_inputs(self, split = None, histograms = None, N = None):
         """
 

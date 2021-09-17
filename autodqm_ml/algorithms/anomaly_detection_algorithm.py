@@ -79,17 +79,35 @@ class AnomalyDetectionAlgorithm():
 
 
         
-        for histogram, histogram_info in histograms.items():
+        if remove_low_stat:
+            print('Removing low stat runs.')
+            for histogram, histogram_info in histograms.items():
             # remove low stat hists if required
             # needs own loop in case the later hists also cuts df
-            if remove_low_stat:
                 mask = df[histogram].apply(numpy.sum) > 10000
                 df = df[mask]
                 df.reset_index(drop=True, inplace=True)
 
 
+        if remove_identical_bins: print('Removing bad bins.')
         # Extract actual histogram data
         for histogram, histogram_info in histograms.items():
+            # Remove identical bins if required
+            if remove_identical_bins:
+                # identify bad bins
+                hd = numpy.stack(df[histogram].values)
+                nbins = hd.shape[1]
+                bad_bins = numpy.all(hd==numpy.tile(hd[0,:],hd.shape[0]).reshape(hd.shape), axis=0) # if bin is same all the way down, it is bad
+                good_bins = numpy.logical_not(bad_bins)
+                bad_bins = numpy.arange(nbins)[bad_bins]
+                good_bins = numpy.arange(nbins)[good_bins]
+                # remove bad bins
+                cleaned = hd[:, good_bins]
+                data = numpy.split(cleaned, cleaned.shape[0])
+                data = [x.flatten() for x in data]
+                # modify df so cleaned hist is used in evaluation
+                df[histogram] = data
+
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
@@ -100,23 +118,7 @@ class AnomalyDetectionAlgorithm():
                         if i == 0: 
                             self.histogram_info.append(h)
             
-            # Remove identical bins if required
-            if remove_identical_bins:
-                # identify bad bins
-                hd = numpy.stack(df[histogram].values)
-                nbins = hd.shape[1]
-                bad_bins = numpy.all(hd==numpy.tile(hd[0,:],hd.shape[0]).reshape(hd.shape), axis=0)
-                good_bins = numpy.logical_not(bad_bins)
-                bad_bins = numpy.arange(nbins)[bad_bins]
-                good_bins = numpy.arange(nbins)[good_bins]
-                # remove bad bins
-                cleaned = hd[:, good_bins]
-                data = numpy.split(cleaned, cleaned.shape[0])
-                data = [x.flatten() for x in data]
-                # modify df, so df used for eval matches in dimension
-                df[histogram] = data 
-            else:
-                data = list(df[histogram].values) 
+            data = list(df[histogram].values) 
 
             # Split into training/testing events (only relevant for ML methods)
             self.data[histogram] = {}
