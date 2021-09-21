@@ -1,4 +1,4 @@
-from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
+B65;6003;1cfrom autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.algorithms.statistical_tester import StatisticalTester
 from autodqm_ml.algorithms.autoencoder import AutoEncoder
 from autodqm_ml.algorithms.pca import PCA
@@ -12,24 +12,24 @@ logger = setup_logger("INFO")
 
 
 training_file = 'scripts/output/test_SingleMuon.pkl' #"scripts/output/test_9Jun2021_SingleMuon.pkl"
-histograms = {
-    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/T0_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/h4DSegmNHits_W-1_St1_Sec1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/T0_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel-1/Sector1/Station1/VDrift_FromSegm_W-1_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/h4DSegmNHits_W1_St1_Sec1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/T0_FromSegm_W1_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel1/Sector1/Station1/VDrift_FromSegm_W1_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/h4DSegmNHits_W0_St1_Sec1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/T0_FromSegm_W0_Sec1_St1" : { "normalize" : True },
-    "DT/Run summary/02-Segments/Wheel0/Sector1/Station1/VDrift_FromSegm_W0_Sec1_St1" : { "normalize" : True },
-}
+
+wheels = [-2,0,1]
+secs = [1,5,10]
+sts = [1,2,3,4]
+
+t0  = [f'DT/Run summary/02-Segments/Wheel{w}/Sector{sec}/Station{st}/T0_FromSegm_W{w}_Sec{sec}_St{st}' for w,sec,st in zip(wheels,secs,sts)]
+h4d = [f'DT/Run summary/02-Segments/Wheel{w}/Sector{sec}/Station{st}/h4DSegmNHits_W{w}_St{st}_Sec{sec}' for w,sec,st in zip(wheels,secs,sts)]
+vdrift = [f'DT/Run summary/02-Segments/Wheel{w}/Sector{sec}/Station{st}/VDrift_FromSegm_W{w}_Sec{sec}_St{st}' for w,sec,st in zip(wheels,secs,sts)]
+histnames = t0 + h4d + vdrift 
+
+
+histograms = {histname:{'normalize':True} for histname in histnames}
 
 p = PCA("my_pca")
 a = AutoEncoder("my_autoencoder")
 
 
-for x in [p]:
+for x in [p, a]:
     x.load_data(
         file = training_file,
         histograms = histograms,
@@ -51,7 +51,7 @@ ref = test_runs[10]
 
 
 results = {}
-for x in [p]:
+for x in [p, a]:
     results[x.name] = x.evaluate(
             runs = test,
             reference = ref,
@@ -65,6 +65,6 @@ for x in [p]:
 
 for run in test:
     logger.info("Run: %d" % run)
-    for x in [p]:
+    for x in [p, a]:
         logger.info("Algorithm: %s, results: %s" % (x.name, results[x.name][run]))
 

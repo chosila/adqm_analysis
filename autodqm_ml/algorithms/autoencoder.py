@@ -9,7 +9,7 @@ import tensorflow.keras as keras
 
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
-from autodqm_ml.plotting.plot_tools import plot1D
+from autodqm_ml.plotting.plot_tools import plot1D, plotMSESummary
 
 #from autodqm_ml.plotting.plots import plot_original_vs_reconstructed
 
@@ -100,7 +100,9 @@ class AutoEncoder(MLAlgorithm):
             threshold = 0.0001
         if histograms==None:
             histograms = self.histograms 
-        
+            
+        original_hists = []
+        reconstructed_hists = []
         for run in runs:
             hists = []
             for histogram in histograms:
@@ -115,13 +117,17 @@ class AutoEncoder(MLAlgorithm):
             #sse = self.model.evaluate(inputs, outputs, batch_size = 1024)
             
             inputslist = list(inputs.values())
+            
             for i,x in enumerate(pred):
                 # plot1D takes (n, ) shape so need to flatten
                 original_hist = inputslist[i].numpy().flatten()
+                original_hists.append(original_hist)
                 # pred[i] has the shape (1,n,1) while iputslist[i] has shape (1,n), so reshape
                 reconstructed_hist = x[:,:,0].flatten()
-                plot1D(original_hist, reconstructed_hist, run, histograms[i], 'autoencoder', threshold)
-                
+                reconstructed_hists.append(reconstructed_hist)
+                plot1D(original_hist, reconstructed_hist, run, histograms[i], self.name, threshold)
+        plotMSESummary(original_hists, reconstructed_hists, threshold, histograms, runs, self.name)
+        
 
     def make_inputs(self, split = None, histograms = None, N = None):
         """
@@ -262,7 +268,7 @@ class AutoEncoder_DNN(keras.models.Model):
 
         for i in range(self.n_hidden_layers):
             if i == (self.n_hidden_layers - 1):
-                activation = None
+                activation = "relu"
                 n_filters = 1
                 name = "output_%s" % (histogram.name_)
             else:

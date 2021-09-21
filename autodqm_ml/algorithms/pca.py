@@ -12,7 +12,7 @@ from pathlib import Path
 
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
-from autodqm_ml.plotting.plot_tools import plot1D
+from autodqm_ml.plotting.plot_tools import plot1D, plotMSESummary
 
 class PCA(MLAlgorithm):
     """
@@ -148,26 +148,35 @@ class PCA(MLAlgorithm):
         if histograms==None:
             histograms = self.histograms
 
+        
+        # to save hists for mse summary plots
+        original_hists = []
+        reconstructed_hists = []
 
+
+        # loop over runs to plot``
+        for run in runs:
         # loop over list of histograms to plot
-        for histogram in histograms:#self.histograms:
-            # loop over runs to plot
-            for run in runs:                
+            for histogram in histograms:#self.histograms:
                 h = Histogram(
                             name = histogram,
                             data = self.df[self.df["run_number"] == run][histogram].iloc[0],
                     )
                 
                 original_hist = numpy.array(h.data).reshape(1, -1)
-                
+                original_hists.append(original_hist.flatten())
+
                 # Transform to latent space                                                                                                                         
                 transformed_hist = self.model[h.name].transform(original_hist)
                 
                 # Reconstruct latent representation back in original space                                                                                          
                 reconstructed_hist = self.model[h.name].inverse_transform(transformed_hist)
-                
-                # plot1D takes array of shape (n,), but original and reco have shape (n,1)
-                plot1D(original_hist.flatten(), reconstructed_hist.flatten(), run, h.name, 'pca', threshold)
+                reconstructed_hists.append(reconstructed_hist.flatten())
 
+                # plot1D takes array of shape (n,), but original and reco have shape (n,1)
+                plot1D(original_hist.flatten(), reconstructed_hist.flatten(), run, h.name, self.name, threshold)
+
+        # plot mse summary 
+        plotMSESummary(original_hists, reconstructed_hists, threshold, histograms, runs, self.name)
 
  
