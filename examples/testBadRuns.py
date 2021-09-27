@@ -7,8 +7,8 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('--test', dest='test', type=bool, default=False, help='Bool: whether running script as train or test')     
 args = parser.parse_args()
 
-# from autodqm_ml.utils import setup_logger
-# logger = setup_logger("INFO")
+from autodqm_ml.utils import setup_logger
+logger = setup_logger("INFO")
 
 
 wheels = [-2]#,0,1]
@@ -60,5 +60,6 @@ p.plot(
     histograms = list(histograms.keys())
 ) 
 
-for i in results: 
-    print(results[i])
+for run in test:
+    logger.info("Run: %d" % run)
+    logger.info("Algorithm: %s, results: %s" % (p.name, results[run]))

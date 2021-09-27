@@ -1,4 +1,4 @@
-B65;6003;1cfrom autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
+from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.algorithms.statistical_tester import StatisticalTester
 from autodqm_ml.algorithms.autoencoder import AutoEncoder
 from autodqm_ml.algorithms.pca import PCA
@@ -13,9 +13,9 @@ logger = setup_logger("INFO")
 
 training_file = 'scripts/output/test_SingleMuon.pkl' #"scripts/output/test_9Jun2021_SingleMuon.pkl"
 
-wheels = [-2,0,1]
-secs = [1,5,10]
-sts = [1,2,3,4]
+wheels = [-2,0]
+secs = [1,5]
+sts = [1,2]
 
 t0  = [f'DT/Run summary/02-Segments/Wheel{w}/Sector{sec}/Station{st}/T0_FromSegm_W{w}_Sec{sec}_St{st}' for w,sec,st in zip(wheels,secs,sts)]
 h4d = [f'DT/Run summary/02-Segments/Wheel{w}/Sector{sec}/Station{st}/h4DSegmNHits_W{w}_St{st}_Sec{sec}' for w,sec,st in zip(wheels,secs,sts)]
@@ -46,7 +46,7 @@ for x in [p, a]:
         
 
 test_runs = p.data["run_number"]["test"]
-test = test_runs[0:10]
+test = test_runs[0:3]
 ref = test_runs[10]
 
 
