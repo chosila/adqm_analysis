@@ -46,4 +46,3 @@ for run in test:
     logger.info("Run: %d" % run)
     for x in [s, p, a]:
         logger.info("Algorithm: %s, results: %s" % (x.name, results[x.name][run]))
-
