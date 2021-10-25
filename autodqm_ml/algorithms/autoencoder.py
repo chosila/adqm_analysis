@@ -56,8 +56,8 @@ class AutoEncoder(MLAlgorithm):
         """
 
         """
-        if model_file is not None:
-            self.model.save('%s.h5')
+        if model_file is None:
+            self.model.save('%s.h5' % self.name)
         else:
             Path(model_file).mkdir(parents=True, exist_ok=True)
             self.model.save(model_file)
