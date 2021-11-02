@@ -6,7 +6,7 @@ dependencies:
   - pyaml
   - uproot
   - numpy
-  - tensorflow>=2.5
+  - tensorflow=2.5
   - xrootd
   - xgboost
   - rich
