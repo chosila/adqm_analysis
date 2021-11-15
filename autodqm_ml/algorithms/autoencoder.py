@@ -1,5 +1,7 @@
 import pandas
 import numpy
+import json
+from pathlib import Path
 
 import logging
 logger = logging.getLogger(__name__)
@@ -10,35 +12,65 @@ import tensorflow.keras as keras
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
 from autodqm_ml.plotting.plot_tools import plot1D, plotMSESummary
+from autodqm_ml import utils
 
 #from autodqm_ml.plotting.plots import plot_original_vs_reconstructed
+
+DEFAULT_OPT = {
+        "n_hidden_layers" : 2,
+        "n_nodes" : 100,
+        "n_latent" : 3,
+        "kernel_1d" : 3,
+        "kernel_2d" : 3,
+        "n_filters" : 8
+}
 
 class AutoEncoder(MLAlgorithm):
     """
     Autoencoder base class.
     """
+    def __init__(self, name, config = None):
+        super(AutoEncoder, self).__init__(name)
+        self.model = None
+
+        if isinstance(config, dict):
+            self.config = utils.update_dict(original = DEFAULT_OPT, new = config)
+
+        elif isinstance(config, str):
+            with open(utils.expand_path(config), "r") as f_in:
+                config = json.load(f_in)
+
+            self.config = utils.update_dict(original = DEFAULT_OPT, new = config)
+
+        elif config is None:
+            self.config = DEFAULT_OPT
+
     def load_model(self, model_file, **kwargs):
         """
-        TODO
+
         """
-        pass
+        self.model = keras.models.load_model(model_file)
 
 
-    def save_model(self, model_file, **kwargs):
+    def save_model(self, model_file = None, **kwargs):
         """
-        TODO
+
         """
-        pass
+        if model_file is None:
+            self.model.save('%s.h5' % self.name)
+        else:
+            Path(model_file).mkdir(parents=True, exist_ok=True)
+            self.model.save(model_file)
 
 
-    def train(self, n_epochs = 1000, batch_size = 128, config = {}):
+    def train(self, n_epochs = 1000, batch_size = 128):
         """
 
         """
         inputs, outputs = self.make_inputs(split = "train")
         inputs_val, outputs_val = self.make_inputs(split = "test")
 
-        self.model = AutoEncoder_DNN(self.histogram_info, **config).model()
+        self.model = AutoEncoder_DNN(self.histogram_info, **self.config).model()
        
         self.model.compile(
                 optimizer = keras.optimizers.Adam(), 
@@ -176,14 +208,12 @@ class AutoEncoder_DNN(keras.models.Model):
     :param n_latent_dim: dimensionality of latent space
     :type n_latent_dim: int
     """
-    def __init__(self, histogram_info, n_hidden_layers = 2, n_nodes = 100, n_latent_dim = 20, n_filters = 16, **kwargs):
+    def __init__(self, histogram_info, **kwargs): 
         super(AutoEncoder_DNN, self).__init__()
 
         self.n_histograms = len(histogram_info)
-        self.n_hidden_layers = n_hidden_layers
-        self.n_nodes = n_nodes
-        self.n_latent_dim = n_latent_dim
-        self.n_filters = n_filters
+
+        self.__dict__.update(kwargs)
 
         self.inputs = []
         self.outputs = []
@@ -210,7 +240,7 @@ class AutoEncoder_DNN(keras.models.Model):
             )(layer)
 
         latent_representation = keras.layers.Dense(
-                units = self.n_latent_dim,
+                units = self.n_latent,
                 activation = None,
                 name = "latent_representation"
         )(layer)
@@ -238,7 +268,7 @@ class AutoEncoder_DNN(keras.models.Model):
             if histogram.n_dim == 1:
                 layer = keras.layers.Conv1D(
                         filters = self.n_filters,
-                        kernel_size = 3,
+                        kernel_size = self.kernel_1d,
                         strides = 1,
                         activation = "relu",
                         name = name 
@@ -246,7 +276,7 @@ class AutoEncoder_DNN(keras.models.Model):
             elif histogram.n_dim == 2:
                 layer = keras.layers.Conv2D(
                         filters = self.n_filters,
-                        kernel_size = 3,
+                        kernel_size = self.kernel_2d,
                         strides = 1,
                         activation = "relu",
                         name = name
@@ -273,13 +303,13 @@ class AutoEncoder_DNN(keras.models.Model):
                 name = "output_%s" % (histogram.name_)
             else:
                 activation = "relu"
-                n_filters = 32
+                n_filters = self.n_filters 
                 name = "decoder_%d_%s" % (i, histogram.name_)
 
             if histogram.n_dim == 1:
                 layer = keras.layers.Conv1DTranspose(
                         filters = n_filters,
-                        kernel_size = 3,
+                        kernel_size = self.kernel_1d,
                         strides = 1,
                         padding = "same",            
                         activation = activation,
@@ -287,8 +317,8 @@ class AutoEncoder_DNN(keras.models.Model):
                 )(layer)
             elif histogram.n_dim == 2:
                 layer = keras.layers.Conv2DTranspose(
-                        filters = n_filters,
-                        kernel_size = 3,
+                        filters = n_filters, 
+                        kernel_size = self.kernel_2d,
                         strides = 1,
                         padding = "same", 
                         activation = activation,
