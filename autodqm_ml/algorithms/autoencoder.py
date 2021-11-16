@@ -86,7 +86,9 @@ class AutoEncoder(MLAlgorithm):
         idx = 0
         for histogram, histogram_info in self.histograms.items():
             original_hist = self.df[histogram]
-            reconstructed_hist = pred[idx] 
+            reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
+            print("original", original_hist)
+            print("reconstructed", reconstructed_hist)
 
             sse = awkward.sum(
                     (original_hist - reconstructed_hist) ** 2,
