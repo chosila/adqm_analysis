@@ -31,7 +31,7 @@ class AutoEncoder(MLAlgorithm):
 
         self.config = utils.update_dict(
                 original = DEFAULT_OPT,
-                new = kwargs
+                new = self.__dict__
         )
 
     def load_model(self, model_file):
