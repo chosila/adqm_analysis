@@ -8,8 +8,8 @@ class MLAlgorithm(AnomalyDetectionAlgorithm):
     Abstract base class for any ML-based anomaly detection algorithm,
     including PCA and Autoencoder.
     """
-    def __init__(self, name):
-        super(MLAlgorithm, self).__init__(name)
+    def __init__(self, **kwargs):
+        super(MLAlgorithm, self).__init__(**kwargs)
         self.model = None
 
 

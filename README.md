@@ -13,16 +13,26 @@ cd AutoDQM_ML
 ```
 **2. Install dependencies**
 
-Dependencies are listed in ```environment.yml```. Install with
+Dependencies are listed in ```environment.yml``` and installed using `conda`. If you do not already have `conda` set up on your system, you can install (for linux) with:
 ```
-conda env create -f environment.yml
+curl -O -L https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh -b
+```
+You can then set `conda` to be available upon login with
+```
+~/miniconda3/bin/conda init # adds conda setup to your ~/.bashrc, so relogin after executing this line
 ```
 
-Note: if you are running on `lxplus`, you may run into permissions errors. I was able to fix this manually by doing:
+Once `conda` is installed and set up, install dependencies with (warning: this step may take a while)
+```
+conda env create -f environment.yml -p <path to install conda env>
+```
+
+Note: if you are running on `lxplus`, you may run into permissions errors, which may be fixed with:
 ```
 chmod 755 -R /afs/cern.ch/user/s/<your_user_name>/.conda
 ```
-and then rerunning the command to create the `conda` env.
+and then rerunning the command to create the `conda` env. The resulting `conda env` can also be several GB in size, so it may also be advisable to specify the installation location in your work area if running on `lxplus`, i.e. running the `conda env create` command with `-p /afs/cern.ch/work/...`.
 
 **3. Install autodqm-ml**
 

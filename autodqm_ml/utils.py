@@ -5,6 +5,7 @@ Original author: Massimiliano Galli
 
 import os
 import copy
+import subprocess
 
 import logging
 from rich.logging import RichHandler
@@ -98,4 +99,50 @@ def update_dict(original, new):
                 updated[key] = new[key]
 
     return updated
+
+
+def do_cmd(cmd, returnStatus=False, dryRun=False):
+    """
+
+    """
+    if dryRun:
+        print("dry run: {}".format(cmd))
+        status, out = 1, ""
+    else:
+        status, out = subprocess.getstatusoutput(cmd)
+    if returnStatus:
+        return status, out
+    else:
+        return out
+
+
+def check_proxy():
+    """
+    Check if a valid grid proxy exists.
+
+    :return: path to proxy if it exists, otherwise None
+    :rtype: str
+    """
+
+    proxy = None
+    bad_proxy = False
+    proxy_info = do_cmd("voms-proxy-info").split("\n")
+    for line in proxy_info:
+        if "path" in line:
+            proxy = line.split(":")[-1].strip()
+
+        if "timeleft" in line:
+            time_left = int(line.replace("timeleft", "").replace(":", "").strip())
+            if not time_left > 0:
+                bad_proxy = True
+
+        if "Couldn't find a valid proxy." in line:
+            bad_proxy = True
+
+    if proxy is None or bad_proxy:
+        return None
+
+    else:
+        return proxy
+
 

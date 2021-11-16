@@ -1,6 +1,10 @@
+import numpy
 from scipy.stats import ks_2samp
 
 from autodqm_ml.algorithms.anomaly_detection_algorithm import AnomalyDetectionAlgorithm
+
+import logging
+logger = logging.getLogger(__name__)
 
 class StatisticalTester(AnomalyDetectionAlgorithm):
     """
@@ -8,61 +12,45 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
     For 1d histograms, it will perform a ks-test.
     For 2d histograms, it will perform a pull-value test.
     """
-    def evaluate_run(self, histograms, threshold = None, metadata = {}):
-        results = {}
 
-        if threshold is None:
-            threshold = 0.1
+    def __init__(self, **kwargs):
+        super(StatisticalTester, self).__init__(**kwargs)
+        self.reference = kwargs.get("reference", None)
 
-        for histogram in histograms:
-            # Check that histogram has a reference
-            if not hasattr(histogram, "reference") or histogram.reference is None:
-                message = "[StatisticalTester : evaluate] Histogram %s does not have a valid reference." % (histogram.name)
-                self.logger.exception(message)
-                raise Exception(message)
- 
-            # Normalize histogram (if not already normalized)
-            #if metadata["normalize"]:
-            #    if not histogram.is_normalized:
-            #        histogram.normalize()
-            #    if not histogram.reference.is_normalized:
-            #        histogram.reference.normalize()
-            
-            if histogram.n_dim == 1:
-                decision, score, p_value = self.ks_test(histogram, threshold)
-            elif histogram.n_dim == 2:
-                decision, score, p_value = self.pull_value_test(histogram, threshold)
+    def predict(self):
+        if self.reference is None:
+            self.reference = self.df.run_number[0]
+            logger.warning("[StatisticalTester : predict] No reference run was provided, will use the first run in the df (%d) as the reference." % (self.reference))
+        
+        self.reference_hists = self.df[self.df.run_number == self.reference][0] 
 
-            results[histogram.name] = {
-                    "decision" : decision,
-                    "score" : score,
-                    "p-value" : p_value
-            }
+        for histogram, info in self.histograms.items():
+            score = numpy.zeros(len(self.df))
+            for i in range(len(score)):
+                if info["n_dim"] == 1:
+                    d_value, p_value = self.ks_test(self.df[histogram][i], self.reference_hists[histogram])
+                    score[i] = d_value
+                elif info["n_dim"] == 2:
+                    pull_value = self.pull_value_test(self.df[histogram][i], self.reference_hists[histogram])
+                    score[i] = pull_value
 
-        return results
+            self.add_prediction(histogram, score)
 
 
-    def ks_test(self, histogram, threshold):
+    def ks_test(self, target, reference):
         """
         Perform ks test on two 1d histograms.
-
-        :param histogram: Histogram object
-        :type histogram: autodqm_ml.data_formats.histogram.Histogram
-        :param threshold: value for which to declare a histogram anomalous
-        :type threshold: float
         """
 
         score, p_value = ks_2samp(
-                histogram.reference.data,
-                histogram.data
+                numpy.array(target), 
+                numpy.array(reference) 
         )
 
-        decision = score > threshold
-
-        return decision, score, p_value
+        return score, p_value
 
 
-    def pull_value_test(self, histogram, threshold):
+    def pull_value_test(self, target, reference):
         """
         Perform pull value test on two 2d histograms.
 
@@ -73,4 +61,4 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
         """
 
         # TODO
-        return False, 0, 0
+        return 0
