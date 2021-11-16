@@ -112,7 +112,7 @@ class PCA(MLAlgorithm):
             self.save_model(pca, model_file)
 
     
-    def predict(self, **kwargs):
+    def predict(self):
         """
 
         """
