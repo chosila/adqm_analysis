@@ -39,6 +39,7 @@ def make_sse_plot(name, recos, save_name, **kwargs):
 
     logger.debug("[plot_tools.py : make_sse_plot] Writing plot to file '%s'." % (save_name))
     plt.savefig(save_name)
+    plt.savefig(save_name.replace(".pdf", ".png"))
     plt.clf()
 
 
@@ -92,6 +93,7 @@ def make_original_vs_reconstructed_plot1d(name, original, recos, run, save_name,
 
     logger.debug("[plot_tools.py : make_original_vs_reconstructed_plot1d] Writing plot to file '%s'. " % (save_name))
     plt.savefig(save_name)
+    plt.savefig(save_name.replace(".pdf", ".png"))
     plt.clf()
 
 
