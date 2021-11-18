@@ -28,6 +28,11 @@ Once `conda` is installed and set up, install dependencies with (warning: this s
 conda env create -f environment.yml -p <path to install conda env>
 ```
 
+One package cannot be installed via `conda` and needs to be installed with `pip` (after activating your `conda` env above):
+```
+pip install yahist
+```
+
 Note: if you are running on `lxplus`, you may run into permissions errors, which may be fixed with:
 ```
 chmod 755 -R /afs/cern.ch/user/s/<your_user_name>/.conda
