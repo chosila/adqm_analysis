@@ -1,0 +1,2 @@
+kANOMALOUS = 1
+kGOOD = 0

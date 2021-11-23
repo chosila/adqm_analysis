@@ -7,6 +7,7 @@ import numpy
 from autodqm_ml.utils import setup_logger
 from autodqm_ml.utils import expand_path
 from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot
+from autodqm_ml.constants import kANOMALOUS, kGOOD
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -123,14 +124,32 @@ def main(args):
 
     # Histogram of sse for algorithms
     for h, info in histograms.items():
-        for set, id in zip(["train", "test"], [0, 1]):
-            runs_set = runs[runs.train_label == id]
-            recos = {}
-            for algorithm, algorithm_info in info["algorithms"].items():
-                recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
-            h_name = h.replace("/", "").replace(" ", "")
-            save_name = args.output_dir + "/" + h_name + "_sse_%s.pdf" % set
-            make_sse_plot(h_name, recos, save_name)
+        splits = {
+                "train_label" : [("train", 0), ("test", 1)],
+                "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
+        }
+        for split, split_info in splits.items():
+            for name, id in split_info:
+                runs_set = runs[runs[split] == id]
+                if len(runs_set) == 0:
+                    logger.warning("[assess.py] For histogram '%s', no runs belong to the set '%s', skipping making a histogram of SSE for this." % (h, name))
+                    continue
+                recos = {}
+                for algorithm, algorithm_info in info["algorithms"].items():
+                    recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
+                h_name = h.replace("/", "").replace(" ", "")
+                save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (split, name)
+                make_sse_plot(h_name, recos, save_name)
+
+
+        #for set, id in zip(["train", "test"], [0, 1]):
+        #    runs_set = runs[runs.train_label == id]
+        #    recos = {}
+        #    for algorithm, algorithm_info in info["algorithms"].items():
+        #        recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
+        #    h_name = h.replace("/", "").replace(" ", "")
+        #    save_name = args.output_dir + "/" + h_name + "_sse_%s.pdf" % set
+        #    make_sse_plot(h_name, recos, save_name)
 
     # Plots of original/reconstructed histograms
     if args.runs is None:
