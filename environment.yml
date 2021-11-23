@@ -2,15 +2,15 @@ name: autodqm-ml
 channels:
   - conda-forge
 dependencies:
-  - python=3.8
+  - python
   - pyaml
   - uproot
   - numpy
-  - tensorflow>=2.5
   - xrootd
-  - xgboost
   - rich
   - pandas
   - pyarrow
   - scipy
   - matplotlib
+  - tqdm
+  - sklearn

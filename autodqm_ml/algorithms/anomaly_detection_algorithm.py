@@ -1,16 +1,18 @@
+import os
 import pandas
 import numpy
-from sklearn.model_selection import train_test_split
+import awkward
 
 from autodqm_ml import utils
 from autodqm_ml.data_formats.histogram import Histogram
-
-
+from autodqm_ml.constants import kANOMALOUS, kGOOD
 
 import logging
 logger = logging.getLogger(__name__)
 
-DEFAULT_COLUMNS = ["run_number"] # columns which should always be read from input df
+
+
+DEFAULT_COLUMNS = ["run_number", "train_label"] # columns which should always be read from input df
 
 class AnomalyDetectionAlgorithm():
     """
@@ -20,24 +22,24 @@ class AnomalyDetectionAlgorithm():
     :type name: str
     """
 
-    def __init__(self, name = "default", data_file = None, **kwargs):
+    def __init__(self, name = "default", **kwargs):
         self.name = name
 
-        if data_file is not None:
-            self.data_file = utils.expand_path(data_file)
-        else:
-            self.data_file = None
-
         self.data_is_loaded = False
-        self.data = {} # dictionary to store actual histogram data, of the form { histogram_name : { "X_train" : <data>, "X_test" : <data> }, }
-        self.histogram_info = [] # list of Histogram objects (for getting histogram metadata)
+
+        # These arguments will be overwritten if provided in kwargs
+        self.output_dir = "output"
+        self.tag = "test"
+        self.histograms = {}
+        self.input_file = None
+        self.remove_low_stat = True
 
         for key, value in kwargs.items():
-            setattr(self, key, value)
-
+            if value is not None:
+                setattr(self, key, value)
         
 
-    def load_data(self, file = None, histograms = {}, train_frac = 0.0, remove_identical_bins = False, remove_low_stat = False):
+    def load_data(self, file = None, histograms = {}, train_frac = 0.5, remove_low_stat = True):
         """
         Loads data from pickle file into ML class. 
 
@@ -47,166 +49,114 @@ class AnomalyDetectionAlgorithm():
         :type histograms: dict. Default histograms = {}
         :param train_frac: fraction of dataset to be kept as training data. Must be between 0 and 1. 
         :type train_frac: float. Default train_frac = 0.0
-        :param remove_identical_bins: removes bins that are identical throughout all runs. 
-        :type remove_identical_bins: bool. Default remove_identical_bins = False.
         :param remove_low_stat: removes runs containing histograms with low stats. Low stat threshold is 10000 events.
         :type remove_low_stat: bool. remove_low_stat = False
         """
         if self.data_is_loaded:
             return
 
-        file = utils.expand_path(file)
         if file is not None:
-            if self.data_file is not None:
-                if not (file == self.data_file):
-                    logger.warning("[AnomalyDetectionAlgorithm : load_data] Data file was previously set as '%s', but will be changed to '%s'." % (self.data_file, file)) 
-                    self.data_file = file
+            if self.input_file is not None:
+                if not (file == self.input_file):
+                    logger.warning("[AnomalyDetectionAlgorithm : load_data] Data file was previously set as '%s', but will be changed to '%s'." % (self.input_file, file)) 
+                    self.input_file = file
             else:
-                self.data_file = file
+                self.input_file = file
 
-        if self.data_file is None:
+        if self.input_file is None:
             logger.exception("[AnomalyDetectionAlgorithm : load_data] No data file was provided to load_data and no data file was previously set for this instance, please specify the input data file.")
             raise ValueError()
 
-        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loading training data from file '%s'" % (self.data_file))
+        if not os.path.exists(self.input_file):
+            self.input_file = utils.expand_path(self.input_file)
+
+        if histograms:
+            self.histograms = histograms
+
+        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loading training data from file '%s'" % (self.input_file))
 
         # Load dataframe
-        df = pandas.read_pickle(self.data_file)
+        df = awkward.from_parquet(self.input_file)
+
+        # Set helpful metadata
+        for histogram, histogram_info in self.histograms.items():
+            self.histograms[histogram]["name"] = histogram.replace("/", "").replace(" ","")
+
+            a = awkward.to_numpy(df[histogram][0])
+            self.histograms[histogram]["shape"] = a.shape
+            self.histograms[histogram]["n_dim"] = len(a.shape)
+            self.histograms[histogram]["n_bins"] = 1
+            for x in a.shape:
+                self.histograms[histogram]["n_bins"] *= x 
+
+        if not "train_label" in df.fields: # don't overwrite if a train/test split was already determined
+            if train_frac > 0:
+                df["train_label"] = numpy.random.choice(2, size = len(df), p = [train_frac, 1 - train_frac]) # 0 = train, 1 = test, -1 = don't use in training or testing
+                df["train_label"] = awkward.where(
+                        df.label == kANOMALOUS,
+                        awkward.ones_like(df.label) * -1, # set train label for anomalous events to -1 so they aren't used in training or testing sets
+                        df.train_label # otherwise, keep the same test/train label as before
+                )
+            else:
+                df["train_label"] = numpy.ones(len(df)) * 1
 
         # Keep only the necessary columns in dataframe
-        self.histograms = list(histograms.keys())
-        df = df[DEFAULT_COLUMNS + self.histograms] 
-
-
+        #df = df[DEFAULT_COLUMNS + list(self.histograms.keys())] 
         
-        if remove_low_stat:
-            print('Removing low stat runs.')
-            for histogram, histogram_info in histograms.items():
-            # remove low stat hists if required
-            # needs own loop in case the later hists also cuts df
-                mask = df[histogram].apply(numpy.sum) > 10000
-                df = df[mask]
-                df.reset_index(drop=True, inplace=True)
+        if self.remove_low_stat:
+            logger.debug("[anomaly_detection_algorithm : load_data] Removing low stat runs.")
+            cut = df.run_number > 0 # dummy all True cut
+            for histogram, histogram_info in self.histograms.items():
+                n_entries = awkward.sum(df[histogram], axis = -1)
+                if histogram_info["n_dim"] == 2:
+                    n_entries = awkward.sum(n_entries, axis = -1)
 
+                if awkward.all((n_entries <= 1.000001) & (n_entries >= 0.999999)): # was already normalized in a previous train.py run which would have removed low stat bins as well, so continue
+                    continue
+                else:
+                    cut = cut & (n_entries >= 10000) # FIXME: hard-coded to 10k for now
+            n_runs_pre = len(df)
+            n_runs_post = awkward.sum(cut)
+            logger.debug("[anomaly_detection_algorithm : load_data] Removing %d/%d runs in which one or more of the requested histograms had less than 10000 entries." % (n_runs_pre - n_runs_post, n_runs_pre))
+            df = df[cut]
 
-        if remove_identical_bins: print('Removing bad bins.')
-        # Extract actual histogram data
-        for histogram, histogram_info in histograms.items():
-            # Remove identical bins if required
-            if remove_identical_bins:
-                # identify bad bins
-                hd = numpy.stack(df[histogram].values)
-                nbins = hd.shape[1]
-                bad_bins = numpy.all(hd==numpy.tile(hd[0,:],hd.shape[0]).reshape(hd.shape), axis=0) # if bin is same all the way down, it is bad
-                good_bins = numpy.logical_not(bad_bins)
-                bad_bins = numpy.arange(nbins)[bad_bins]
-                good_bins = numpy.arange(nbins)[good_bins]
-                # remove bad bins
-                cleaned = hd[:, good_bins]
-                data = numpy.split(cleaned, cleaned.shape[0])
-                data = [x.flatten() for x in data]
-                # modify df so cleaned hist is used in evaluation
-                df[histogram] = data
-
+        for histogram, histogram_info in self.histograms.items():
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
-                    for i in range(len(df)): # TODO: come up with more efficient way than looping through df
-                        h = Histogram(name = histogram, data = df[histogram][i])
-                        h.normalize()
-                        df[histogram][i] = h.data
-                        if i == 0: 
-                            self.histogram_info.append(h)
-            
-            data = list(df[histogram].values) 
+                    sum = awkward.sum(df[histogram], axis = -1)
+                    if histogram_info["n_dim"] == 2:
+                        sum = awkward.sum(sum, axis = -1)
 
-            # Split into training/testing events (only relevant for ML methods)
-            self.data[histogram] = {}
-            if train_frac > 0:
-                X_train, X_test = train_test_split(
-                    data,
-                    train_size = train_frac,
-                    random_state = 0 # fix random state so each histogram gets the same test/train split
-                )
+                    logger.debug("[anomaly_detection_algorithm : load_data] Scaling all entries in histogram '%s' by the sum of total entries." % histogram)
+                    df[histogram] = df[histogram] * (1. / sum) 
 
-                self.data[histogram]["X_train"] = X_train
-                self.data[histogram]["X_test"] = X_test
-
-                self.n_train = len(self.data[histogram]["X_train"])
-                self.n_test = len(self.data[histogram]["X_test"])
-
-            else:
-                self.data[histogram]["X_train"] = None
-                self.data[histogram]["X_test"] = data
-
-                self.n_train = 0
-                self.n_test = len(self.data[histogram]["X_test"])
-
-        
-        for column in DEFAULT_COLUMNS:
-            self.data[column] = {}
-            data = list(df[column].values)
-
-            if train_frac > 0:
-                col_train, col_test = train_test_split(
-                        data,
-                        train_size = train_frac,
-                        random_state = 0 # fix random state so each histogram gets the same test/train split
-                )
-
-                self.data[column]["train"] = col_train
-                self.data[column]["test"] = col_test
-
-            else:
-                self.data[column]["train"] = None
-                self.data[column]["test"] = data 
-
-
+        self.n_train = awkward.sum(df.train_label == 0)
+        self.n_test = awkward.sum(df.train_label == 1)
         self.df = df
 
 
-        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (len(self.histogram_info), self.n_train, self.n_test))
+        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (len(list(self.histograms.keys())), self.n_train, self.n_test))
 
         self.data_is_loaded = True
 
 
-    def evaluate(self, runs = None, reference = None, histograms = None, threshold = None, metadata = {}):
+    def add_prediction(self, histogram, score, reconstructed_hist = None):
+        """
+        Add fields to the df containing the score for this algorithm (p-value/pull-value for statistical tests, sse for ML algorithms)
+        and the reconstructed histograms (for ML algorithms only).
+        """
+        self.df[histogram + "_score_" + self.tag] = score
+        if reconstructed_hist is not None:
+            self.df[histogram + "_reco_" + self.tag] = reconstructed_hist
+
+
+    def save(self):
         """
 
         """
+        os.system("mkdir -p %s" % self.output_dir)
 
-
-        if runs is None:
-            runs = self.data["run_number"]["test"]
-
-        if histograms is None:
-            histograms = self.histograms
-
-        h_ref = {}
-        if reference is not None:
-            for histogram in self.histograms:
-                h_ref[histogram] = Histogram(
-                        name = "%s_ref_Run%d" % (histogram, reference),
-                        data = self.df[self.df["run_number"] == reference][histogram].iloc[0]
-                )
-
-
-        results = {}
-        for run in runs:
-            hists = []
-            for histogram in self.histograms:
-                h = Histogram(
-                        name = histogram,
-                        data = self.df[self.df["run_number"] == run][histogram].iloc[0],
-                        reference = h_ref[histogram] if reference is not None else None
-                )
-                hists.append(h)
-            results[run] = {x : y for x, y in self.evaluate_run(histograms = hists, threshold = threshold, metadata = metadata).items() if x in histograms}
-
-        return results
-
-    def evaluate_run(self, histograms, threshold, metadata):
-        """
-
-        """
-        raise NotImplementedError()
+        self.output_file = "%s/%s.parquet" % (self.output_dir, self.input_file.split("/")[-1].replace(".parquet", ""))
+        logger.info("[AnomalyDetectionAlgorithm : save] Saving output with additional fields to file '%s'." % (self.output_file))
+        awkward.to_parquet(self.df, self.output_file)

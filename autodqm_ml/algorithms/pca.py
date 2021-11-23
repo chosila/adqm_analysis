@@ -1,7 +1,9 @@
+import os
 import pandas
 import numpy
 import json
 import matplotlib.pyplot as plt
+import awkward
 #from pathlib import Path
 
 import logging
@@ -14,11 +16,21 @@ from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
 from autodqm_ml.plotting.plot_tools import plot1D, plotMSESummary
 
+DEFAULT_OPT = {
+        "n_components" : 2
+}
+
 class PCA(MLAlgorithm):
     """
     PCA-based anomaly detector
     """
-    def load_model(self, model_file, **kwargs):
+    def __init__(self, **kwargs):
+        super(PCA, self).__init__(**kwargs)
+
+        if not hasattr(self, "n_components"):
+            self.n_components = DEFAULT_OPT["n_components"]
+
+    def load_model(self, model_file):
         """
         Load PCA model from pickle file
 
@@ -26,44 +38,35 @@ class PCA(MLAlgorithm):
         :type model_file: str
         
         """
-        self.model = {}
-        for histogram in self.histogram_info:
-            name = histogram.name
-            filename = name.split('/')[-1]
-            pca = decomposition.PCA(
-                    #n_components = n_components,
-                    random_state = 0, # fixed for reproducibility                                                                                                   
-            )
-            pcaParams = json.load(open(f'{model_file}/{filename}.json','r'))
-            pca.components_ = numpy.array(pcaParams['components_'])
-            pca.explained_variance_ = numpy.array(pcaParams['explained_variance_'])
-            pca.explained_variance_ratio_ = numpy.array(pcaParams['explained_variance_ratio_'])
-            pca.singular_values_ = numpy.array(pcaParams['singular_values_'])
-            pca.mean_ = numpy.array(pcaParams['mean_'])
-            pca.n_components_ = numpy.array(pcaParams['n_components_'])
-            pca.n_features_ = numpy.array(pcaParams['n_features_'])
-            pca.n_samples_ = numpy.array(pcaParams['n_samples_'])
-            pca.noise_variance_ = numpy.array(pcaParams['noise_variance_'])
-            ## delcaire model instance
-            self.model[name] = pca
+        with open(model_file, "r") as f_in:
+            pcaParams = json.load(f_in)
 
+        pca = decomposition.PCA(random_state = 0)
 
-    def save_model(self, model_file, **kwargs):
+        pca.components_ = numpy.array(pcaParams['components_'])
+        pca.explained_variance_ = numpy.array(pcaParams['explained_variance_'])
+        pca.explained_variance_ratio_ = numpy.array(pcaParams['explained_variance_ratio_'])
+        pca.singular_values_ = numpy.array(pcaParams['singular_values_'])
+        pca.mean_ = numpy.array(pcaParams['mean_'])
+        pca.n_components_ = numpy.array(pcaParams['n_components_'])
+        pca.n_features_ = numpy.array(pcaParams['n_features_'])
+        pca.n_samples_ = numpy.array(pcaParams['n_samples_'])
+        pca.noise_variance_ = numpy.array(pcaParams['noise_variance_'])
+
+        return pca
+
+    def save_model(self, pca, model_file):
         """
         Save a trained PCA model
 
+        :param pca: trained pca
+        :type pca: `sklearn.decomposition.PCA`
         :param model_file: folder name to place trained PCA pickles
         :type model_file: str
         """
-        Path(model_file).mkdir(parents=True, exist_ok=True)
-        for histogram in self.histogram_info:
-            name = histogram.name
-            pca = self.model[name]
-            ## used for nameing json file, and labeling the file inside json
-            filename = name.split('/')[-1]
-            ## info that is going into JSON file
-            pcaParams = {
-                'name' : filename,
+        os.system("mkdir -p %s" % self.output_dir)
+        pcaParams = {
+                'name' : model_file.split("/")[-1].replace(".json", ""),
                 'components_' : pca.components_.tolist(),
                 'explained_variance_' : pca.explained_variance_.tolist(),
                 'explained_variance_ratio_' : pca.explained_variance_ratio_.tolist(),
@@ -73,110 +76,94 @@ class PCA(MLAlgorithm):
                 'n_features_' : pca.n_features_, 
                 'n_samples_' : pca.n_samples_, 
                 'noise_variance_' : pca.noise_variance_
-            }
-            json.dump(pcaParams, open(f'{model_file}/{filename}.json','w'),indent=4)
-        
-    def train(self, n_components = 2, config = {}):
+        }
+
+        with open(model_file, "w") as f_out:
+            json.dump(pcaParams, f_out, indent = 4, sort_keys = True)       
+ 
+
+    def get_histogram(self, histogram, split = "all"):
+        """
+        Helper function to grab a histogram (by name), flattening if it is a 2d histogram.
+
+        :param histogram: name of histogram to grab, which could be a 1d or a 2d histogram
+        :type histogram: str
+        :param split: which set of runs to grab -- 'train', 'test', or 'all'
+        :type split: str, defaults to 'all'
+        :return: a 1d histogram (flattened if originally a 2d histogram)
+        :rtype: awkward.Array
+        """
+
+        if split == "train":
+            runs = self.df[self.df.train_label == 0]
+        elif split == "test":
+            runs = self.df[self.df.train_label == 1]
+        elif split == "all":
+            runs = self.df
+
+        h = runs[histogram]
+
+        n_dim = len(awkward.to_numpy(h[0]).shape)
+
+        if n_dim == 2:
+            h = awkward.flatten(h, axis = 2)
+        elif not n_dim == 1:
+            logger.warning("[PCA : get_histogram] Found that histogram '%s' has number of dimensions = %d. Only 1d and 2d histograms are supported." % (histogram, n_dim))
+
+        h = awkward.nan_to_num(h)
+
+        return h
+
+
+    def train(self):
         """
         Trains new PCA models using loaded data. Must call pca.load_data() before training. 
-
-        :param n_components: number of components to keep. If None, all components are kept. 
-        :type n_components: int, default = 2
-        
         """
 
         self.model = {}
-        for histogram in self.histogram_info:
-            name = histogram.name
+
+        for histogram, histogram_info in self.histograms.items():
+            model_file = "%s/pca_%s_%s.json" % (self.output_dir, histogram_info["name"], self.tag)
+            if os.path.exists(model_file):
+                logger.warning("[PCA : train] A trained PCA already exists for histogram '%s' with tag '%s' at file '%s'. We will load the saved model from the file rather than retraining. If you wish to retrain, please provide a new tag or delete the old outputs." % (histogram, self.tag, model_file))
+                self.model[histogram] = self.load_model(model_file)
+                continue
+
             pca = decomposition.PCA(
-                    n_components = n_components,
+                    n_components = self.n_components,
                     random_state = 0, # fixed for reproducibility
             )
-
-            inputs = self.data[name]["X_train"]
             
-            logger.debug("[PCA : train] Training PCA with %d principal components for histogram '%s' with %d training examples." % (n_components, name, len(inputs)))
+            input = self.get_histogram(histogram, split = "train") 
 
-            pca.fit(inputs)
-            self.model[name] = pca
+            logger.debug("[PCA : train] Training PCA with %d principal components for histogram '%s' with %d training examples." % (self.n_components, histogram, len(input)))
 
-    def evaluate_run(self, histograms, threshold = None, reference = None, metadata = {}):
-        if threshold is None:
-            threshold = 0.00001 # FIXME hard-coded for now
+            pca.fit(input)
+            self.model[histogram] = pca
+            
+            logger.debug("[PCA : train] Saving trained PCA to file '%s'." % (model_file))
+            self.save_model(pca, model_file)
 
-        results = {}
+    
+    def predict(self):
+        """
 
-        for histogram in histograms:
-            # Get original histogram
-            original_hist = numpy.array(histogram.data).reshape(1, -1)
+        """
+        for histogram, histogram_info in self.histograms.items():
+            pca = self.model[histogram]
+            
+            # Grab the original histograms and transform to latent space
+            original_hist = self.get_histogram(histogram, split = "all") 
+            original_hist_transformed = pca.transform(original_hist)
 
-            # Transform to latent space
-            transformed_hist = self.model[histogram.name].transform(original_hist)
-
-            # Reconstruct latent representation back in original space
-            reconstructed_hist = self.model[histogram.name].inverse_transform(transformed_hist)
-
-            # Take mean squared error between original and reconstructed histogram
-            sse = numpy.mean(
-                    numpy.square(original_hist - reconstructed_hist)
+            # Reconstruct histogram from latent space representation
+            reconstructed_hist = pca.inverse_transform(original_hist_transformed)
+            
+            # Calculate sse
+            sse = awkward.sum(
+                    (original_hist - reconstructed_hist) ** 2,
+                    axis = -1
             )
 
-            results[histogram.name] = {
-                    "score" : sse,
-                    "decision" : sse > threshold
-            }
+            self.add_prediction(histogram, sse, reconstructed_hist)
 
-        return results
-
-
-
-    def plot(self, runs, histograms=None, threshold=None):
-        """
-        Plots reconstructed histograms on top of original histograms. If the SSE between the plotted histograms are above the threshold, SSE plots will also be made.Either pca.train() or pca.load_model() must be called before plot. 
-        
-        :param runs: Runs to be plotted
-        :type runs: list of int
-        :param histograms: names of histograms to be plotted. Must match the names used by load_model/train. If histograms = None, all trained histograms in the pca class will be plotted
-        :type histograms: list of str. Default histograms = None
-        :param threshold: threshold to identify histogram as anomalous. If None, threshold will be set to 0.00001. 
-        :type threshold: float, Default threshold = None
-        """
-        # threshold hardcoded for now
-        if threshold==None:
-            threshold = 0.00001
-
-        if histograms==None:
-            histograms = self.histograms
-
-        
-        # to save hists for mse summary plots
-        original_hists = []
-        reconstructed_hists = []
-
-
-        # loop over runs to plot``
-        for run in runs:
-        # loop over list of histograms to plot
-            for histogram in histograms:#self.histograms:
-                h = Histogram(
-                            name = histogram,
-                            data = self.df[self.df["run_number"] == run][histogram].iloc[0],
-                    )
-                
-                original_hist = numpy.array(h.data).reshape(1, -1)
-                original_hists.append(original_hist.flatten())
-
-                # Transform to latent space                                                                                                                         
-                transformed_hist = self.model[h.name].transform(original_hist)
-                
-                # Reconstruct latent representation back in original space                                                                                          
-                reconstructed_hist = self.model[h.name].inverse_transform(transformed_hist)
-                reconstructed_hists.append(reconstructed_hist.flatten())
-
-                # plot1D takes array of shape (n,), but original and reco have shape (n,1)
-                plot1D(original_hist.flatten(), reconstructed_hist.flatten(), run, h.name, self.name, threshold)
-
-        # plot mse summary 
-        plotMSESummary(original_hists, reconstructed_hists, threshold, histograms, runs, self.name)
-
- 

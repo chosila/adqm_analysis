@@ -3,9 +3,13 @@ import os
 import uproot
 import numpy
 import pandas
+import awkward
+from tqdm import tqdm
 
 import logging
 logger = logging.getLogger(__name__)
+
+from autodqm_ml.utils import check_proxy, expand_path
 
 EOS_PATH = "/eos/cms/store/group/comm_dqm/DQMGUI_data/"
 HIST_PATH = "DQMData/Run {}/"
@@ -13,8 +17,6 @@ HIST_PATH = "DQMData/Run {}/"
 class DataFetcher():
     """
     Class to access DQM data on /eos through `xrootd`.
-    :param tag: tag to identify this DataFetcher and its output files
-    :type tag: str
     :param contents: path to json file specifying the subsytems and histograms to grab 
     :type contents: str
     :param datasets: path to json file specifying the years, eras, runs, productions, and primary datasets to grab
@@ -22,12 +24,22 @@ class DataFetcher():
     :param short: flag to just run over a few files (for debugging)
     :type short: bool
     """
-    def __init__(self, tag, contents, datasets, short = False):
-        self.tag = tag
+    def __init__(self, output_dir, contents, datasets, short = False):
+        proxy = check_proxy()
+        if proxy is None:
+            message = "[DataFetcher : __init__] Unable to find a valid grid proxy, which is necessary to access DQM data on /eos with `xrootd`. Please create a valid grid proxy and rerun."
+            logger.exception(message)
+            raise RuntimeError()
+        
+        self.output_dir = output_dir
 
+        if not os.path.exists(contents):
+            contents = expand_path(contents)
         with open(contents, "r") as f_in:
             self.contents = json.load(f_in)
 
+        if not os.path.exists(datasets):
+            datasets = expand_path(datasets)
         with open(datasets, "r") as f_in:
             pds_and_datasets = json.load(f_in)
 
@@ -50,11 +62,9 @@ class DataFetcher():
                 logger.exception(message)
                 raise ValueError(message)
 
-            if "eras" not in info.keys():
-                info["eras"] = None
-
-            if "runs" not in info.keys():
-                info["runs"] = None
+            for field in ["eras", "runs", "bad_runs", "good_runs"]:
+                if field not in info.keys():
+                    info[field] = None
 
         self.short = short
 
@@ -81,6 +91,20 @@ class DataFetcher():
             logger.info("\t productions: %s" % (str(info["productions"])))
             logger.info("\t specified eras: %s" % (str(info["eras"])))
             logger.info("\t specified runs: %s" % (str(info["runs"])))
+
+            if info["bad_runs"] is not None:
+                logger.info("\t The following runs will be labeled as 'bad' (with 'label' = 1): %s" % (str(info["bad_runs"]))) 
+            if info["good_runs"] is not None:
+                logger.info("\t The following runs will be labeled as 'good' (with 'label' = 0): %s" % (str(info["good_runs"])))
+
+            if info["bad_runs"] is not None and info["good_runs"] is not None:
+                logger.info("\t and all other runs will be labeled with 'label' = -1.")
+            elif info["bad_runs"] is not None:
+                logger.info("\t and all other runs will be assumed to be 'good' (with 'label' = 0).")
+            elif info["good_runs"] is not None:
+                logger.info("\t and all other runs will be assumed to be 'bad' (with 'label' = 1).")
+
+
 
 
         self.get_list_of_files()
@@ -182,24 +206,38 @@ class DataFetcher():
         """
         self.data = {}
         for pd in self.pds:
-            self.data[pd] = pandas.DataFrame()
+            self.data[pd] = {} 
             for year in self.datasets.keys():
-                for file in self.files[pd][year]:
+                logger.info("[DataFetcher : extract_data] Loading histograms for pd '%s' and year '%s' from %d total files." % (pd, year, len(self.files[pd][year])))
+                for file in tqdm(self.files[pd][year]):
                     run_number = DataFetcher.get_run_number(file)
+
+                    label = -1 # unknown good/bad
+                    if self.datasets[year]["bad_runs"] is not None:
+                        if str(run_number) in self.datasets[year]["bad_runs"]:
+                            label = 1 # bad/anomalous
+                        elif self.datasets[year]["good_runs"] is None:
+                            label = 0 # if only bad_runs was specified, mark everything not in bad_runs as good
+
+                    if self.datasets[year]["good_runs"] is not None:
+                        if str(run_number) in self.datasets[year]["good_runs"]:
+                            label = 0 # good/not anomalous
+                        elif self.datasets[year]["bad_runs"] is None:
+                            label = 1 # if only good_runs was specified, mark everything not in good_runs as bad
+
                     logger.debug("[DataFetcher : load_data] Loading histograms from file %s, run %d" % (file, run_number))
 
                     histograms = self.load_data(file, run_number, self.contents) 
+                    if not self.data[pd]:
+                        self.data[pd] = histograms
 
                     if histograms is not None:
-                        columns = ["run_number", "pd", "year"] + histograms["columns"]
-                        column_data = [[run_number, pd, year] + histograms["data"]]
-                        df = pandas.DataFrame(column_data, columns = columns)
-                        self.data[pd] = self.data[pd].append(df, ignore_index=True)
-
-                    #if self.short:
-                    #    if len(self.data[pd]) > 2:
-                    #        continue
-        
+                        histograms["run_number"] = [run_number]
+                        histograms["year"] = [year]
+                        histograms["label"] = [label]
+                        for k, v in histograms.items():
+                            self.data[pd][k] += v
+                        
 
     def load_data(self, file, run_number, contents): 
         """
@@ -217,7 +255,8 @@ class DataFetcher():
         :return: histogram names and contents
         :rtype: dict 
         """
-        hist_data = { "columns" : [], "data" : [] }
+        #hist_data = { "columns" : [], "data" : [] }
+        hist_data = {}
 
         # Check if file is corrupt
         try:
@@ -234,11 +273,10 @@ class DataFetcher():
             for subsystem, histogram_list in contents.items(): 
                 for hist in histogram_list:
                     histogram_path = DataFetcher.construct_histogram_path(HIST_PATH, run_number, subsystem, hist) 
-                    hist_data["data"].append(f[histogram_path].values())
-                    hist_data["columns"].append(subsystem + "/" + hist)
+                    hist_data[subsystem + "/" + hist] = [f[histogram_path].values()]
 
         logger.debug("[DataFetcher : load_data] Histogram contents:")
-        for hist, data in zip(hist_data["columns"], hist_data["data"]):
+        for hist, data in hist_data.items():
             logger.debug("\t %s : %s" % (hist, data))
 
         return hist_data
@@ -292,19 +330,26 @@ class DataFetcher():
 
     def write_data(self):
         """
-        Write dataframe -> pickle file for each primary dataset.
+        Write dataframe -> parquet file for each primary dataset.
+        The conversion from pandas -> awkward and then saving as parquet makes output files about an order of magnitude smaller than simply doing df.to_pickle.
+        The resulting .parquet file can be read either as an awkward Array or a pandas dataframe with:
+            array = awkward.from_parquet("file.parquet")
+            df = pandas.read_parquet("file.parquet")
         """
-        os.system("mkdir -p output/") 
+        os.system("mkdir -p %s/" % self.output_dir) 
 
         for pd in self.pds:
-            df = self.data[pd]
-            if df is not None:
-                df.to_pickle("output/%s_%s.pkl" % (self.tag, pd))
+            array = awkward.Array(self.data[pd])
+            if array is not None:
+                output_file = "%s/%s.parquet" % (self.output_dir, pd)
+                logger.info("[DataFetcher : write_data] Writing histograms to output file '%s'" % (output_file))
+                awkward.to_parquet(array, output_file) 
 
 
     def write_summary(self):
         """
         Write summary json of configuration.
+        TODO
         """
         return
 
