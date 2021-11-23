@@ -45,8 +45,21 @@ def make_sse_plot(name, recos, save_name, **kwargs):
 
 def make_original_vs_reconstructed_plot(name, original, recos, run, save_name, **kwargs): 
     n_dim = len(np.array(original).shape)
+
     if n_dim == 1:
         make_original_vs_reconstructed_plot1d(name, original, recos, run, save_name, **kwargs)
+
+    elif n_dim == 2:
+        original_flat = awkward.flatten(original, axis = -1)
+        recos_flat = {}
+        for algorithm, reco in recos.items():
+            recos_flat[algorithm] = {
+                    "reco" : awkward.flatten(reco["reco"], axis = -1),
+                    "score" : reco["score"]
+            }
+      
+        make_original_vs_reconstructed_plot1d(name, original_flat, recos_flat, run, save_name, **kwargs)
+
     else:
         message = "[plot_tools.py : make_original_vs_reconstructed_plot] Plotting not implemented for histograms with dimension %d." % (n_dim)
         logger.exception(message)

@@ -82,6 +82,39 @@ class PCA(MLAlgorithm):
             json.dump(pcaParams, f_out, indent = 4, sort_keys = True)       
  
 
+    def get_histogram(self, histogram, split = "all"):
+        """
+        Helper function to grab a histogram (by name), flattening if it is a 2d histogram.
+
+        :param histogram: name of histogram to grab, which could be a 1d or a 2d histogram
+        :type histogram: str
+        :param split: which set of runs to grab -- 'train', 'test', or 'all'
+        :type split: str, defaults to 'all'
+        :return: a 1d histogram (flattened if originally a 2d histogram)
+        :rtype: awkward.Array
+        """
+
+        if split == "train":
+            runs = self.df[self.df.train_label == 0]
+        elif split == "test":
+            runs = self.df[self.df.train_label == 1]
+        elif split == "all":
+            runs = self.df
+
+        h = runs[histogram]
+
+        n_dim = len(awkward.to_numpy(h[0]).shape)
+
+        if n_dim == 2:
+            h = awkward.flatten(h, axis = 2)
+        elif not n_dim == 1:
+            logger.warning("[PCA : get_histogram] Found that histogram '%s' has number of dimensions = %d. Only 1d and 2d histograms are supported." % (histogram, n_dim))
+
+        h = awkward.nan_to_num(h)
+
+        return h
+
+
     def train(self):
         """
         Trains new PCA models using loaded data. Must call pca.load_data() before training. 
@@ -101,7 +134,7 @@ class PCA(MLAlgorithm):
                     random_state = 0, # fixed for reproducibility
             )
             
-            input = self.df[self.df.train_label == 0][histogram]
+            input = self.get_histogram(histogram, split = "train") 
 
             logger.debug("[PCA : train] Training PCA with %d principal components for histogram '%s' with %d training examples." % (self.n_components, histogram, len(input)))
 
@@ -120,7 +153,7 @@ class PCA(MLAlgorithm):
             pca = self.model[histogram]
             
             # Grab the original histograms and transform to latent space
-            original_hist = self.df[histogram]
+            original_hist = self.get_histogram(histogram, split = "all") 
             original_hist_transformed = pca.transform(original_hist)
 
             # Reconstruct histogram from latent space representation
