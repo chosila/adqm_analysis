@@ -30,14 +30,13 @@ class AnomalyDetectionAlgorithm():
         self.histograms = {}
         self.input_file = None
         self.remove_low_stat = True
-        self.remove_identical_bins = False
 
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
         
 
-    def load_data(self, file = None, histograms = {}, train_frac = 0.5, remove_identical_bins = False, remove_low_stat = True):
+    def load_data(self, file = None, histograms = {}, train_frac = 0.5, remove_low_stat = True):
         """
         Loads data from pickle file into ML class. 
 
@@ -47,8 +46,6 @@ class AnomalyDetectionAlgorithm():
         :type histograms: dict. Default histograms = {}
         :param train_frac: fraction of dataset to be kept as training data. Must be between 0 and 1. 
         :type train_frac: float. Default train_frac = 0.0
-        :param remove_identical_bins: removes bins that are identical throughout all runs. 
-        :type remove_identical_bins: bool. Default remove_identical_bins = False.
         :param remove_low_stat: removes runs containing histograms with low stats. Low stat threshold is 10000 events.
         :type remove_low_stat: bool. remove_low_stat = False
         """
@@ -102,13 +99,8 @@ class AnomalyDetectionAlgorithm():
             df = df[cut]
 
 
-        if self.remove_identical_bins:
-            logger.debug('[anomaly_detection_algorithm : load_data] Removing identical bins.')
         # Extract actual histogram data
         for histogram, histogram_info in self.histograms.items():
-            # Remove identical bins if required
-            if self.remove_identical_bins:
-                pass
             # Normalize (if specified in histograms dict)
             if "normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
