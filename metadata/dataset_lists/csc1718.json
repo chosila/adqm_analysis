@@ -1,0 +1,13 @@
+{
+    "primary_datasets" : ["SingleMuon"],
+    "years" : {
+        "2017" : {
+            "productions" : ["UL2017"],
+            "bad_runs" : ["300105","300106","300107","300123","300124","300236","300237","300516","300517","300538","300539","300551"],
+            "comments" : "300105-300107: low occupancy in ME+1/1/17; 300123-300124: zero wire digi occupancy in ME-1/3/32; 300236-300237: low occupancy in ME-1/1/28; 300516-300517: low strip digi occupancy in ME-1/1/18, ME-1/1/28; 300538,300539,300551: HV master board failure-empty "
+        },
+        "2018" : {
+            "productions" : ["UL2018"]
+        }
+    }
+}

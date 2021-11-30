@@ -1,0 +1,17 @@
+{
+    "CSC": [
+        "/Run summary/CSCOfflineMonitor/Occupancy/hORecHits",
+        "/Run summary/CSCOfflineMonitor/Occupancy/hOSegments",
+        "/Run summary/CSCOfflineMonitor/Occupancy/hOStrips",
+        "/Run summary/CSCOfflineMonitor/Occupancy/hOWires",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeCombinedSerial",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeVsTOF",
+        "/Run summary/CSCOfflineMonitor/Segments/hSTimeVsZ",
+        "/Run summary/CSCOfflineMonitor/Segments/hSnSegments",
+        "/Run summary/CSCOfflineMonitor/Segments/hSnhits",
+        "/Run summary/CSCOfflineMonitor/Segments/hSGlobalPhi",
+        "/Run summary/CSCOfflineMonitor/Segments/hSGlobalTheta",
+        "/Run summary/CSCOfflineMonitor/Segments/hSChiSq"
+    ]
+}
+
