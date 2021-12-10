@@ -3,7 +3,7 @@
     "years" : {
 	"2016" :{
 	    "productions" : ["PromptReco"],
-	    "runs" : ["281680", "281674", "281663", "273294", "279480", "276072",
+	    "bad_runs" : ["281680", "281674", "281663", "273294", "279480", "276072",
 		      "275656", "273294", "272019", "272007", "271327", "271324",
 		      "271323", "271322", "271319", "271191", "271190", "271188",
 		      "271052", "271050", "271046"],
@@ -27,7 +27,7 @@
 	},
 	"2015" : {
 	    "productions" : ["PromptReco"],
-	    "runs" : ["263729", "263728", "263718", "263689", "263686", "263685",
+	    "bad_runs" : ["263729", "263728", "263718", "263689", "263686", "263685",
 		      "259812", "259464", "258335", "258320", "258313", "258312",
 		      "257821", "257732", "256463", "256445", "256214", "256168",
 		      "255993", "254457", "254454", "254453", "254314", "254313",
@@ -66,7 +66,7 @@
 			 "247081: Because of statistics efficiency summary shows some orange spots.",
 			 "247079: There are a lot of orange spots in the efficiency summary plot (statistics)",
 			 "247068: a lot of RED boxes in the Efficiency summary plot",
-			 "198048: expert requested to change to Bad since a sector is missing. Left as bad in Re-Reco",
+			 "198048: expert requested to change to Bad since a sector is missing. Left as bad in Re-Reco"
 			]
 	}
     }
