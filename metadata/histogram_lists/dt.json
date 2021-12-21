@@ -1,7 +1,7 @@
 {
     "DT": [
-	"02-Segments/00-MeanRes/MeanDistr",
-	"02-Segments/01-SigmaRes/SigmaDistr",
+	"Run summary/02-Segments/00-MeanRes/MeanDistr",
+	"Run summary/02-Segments/01-SigmaRes/SigmaDistr",
         "Run summary/02-Segments/Wheel-2/Sector1/Station1/h4DSegmNHits_W-2_St1_Sec1",
         "Run summary/02-Segments/Wheel-2/Sector1/Station2/h4DSegmNHits_W-2_St2_Sec1",
         "Run summary/02-Segments/Wheel-2/Sector1/Station3/h4DSegmNHits_W-2_St3_Sec1",
