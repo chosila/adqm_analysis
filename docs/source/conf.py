@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'autodqm_ml'
-copyright = '2022, Rob White, Samuel May'
-author = 'Rob White, Samuel May'
+copyright = '2022, The AutoDQM Team'
+author = 'The AutoDQM Team'
 
 
 # -- General configuration ---------------------------------------------------
