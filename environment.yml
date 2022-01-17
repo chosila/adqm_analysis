@@ -13,6 +13,6 @@ dependencies:
   - scipy
   - matplotlib
   - tqdm
-  - sklearn
+  - scikit-learn
   - sphinx
   - sphinx_rtd_theme
