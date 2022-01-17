@@ -34,6 +34,7 @@ class AutoEncoder(MLAlgorithm):
                 new = self.__dict__
         )
 
+
     def load_model(self, model_file):
         """
 
@@ -47,6 +48,7 @@ class AutoEncoder(MLAlgorithm):
 
         """
         model.save(model_file)
+
 
     def train(self, n_epochs = 1000, batch_size = 128):
         """
@@ -86,7 +88,10 @@ class AutoEncoder(MLAlgorithm):
         idx = 0
         for histogram, histogram_info in self.histograms.items():
             original_hist = self.df[histogram]
-            reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
+            if len(self.histograms.items()) >= 2:
+                reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
+            else:
+                reconstructed_hist = awkward.flatten(awkward.from_numpy(pred), axis = -1)
 
             sse = awkward.sum(
                     (original_hist - reconstructed_hist) ** 2,
@@ -95,6 +100,7 @@ class AutoEncoder(MLAlgorithm):
 
             self.add_prediction(histogram, sse, reconstructed_hist)
             idx += 1
+
 
     def make_inputs(self, split = None):
         """
