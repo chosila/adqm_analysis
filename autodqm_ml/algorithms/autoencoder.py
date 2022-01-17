@@ -98,6 +98,10 @@ class AutoEncoder(MLAlgorithm):
                     axis = -1
             )
 
+            # For 2d histograms, we need to sum over one more axis to get a single SSE score for each run
+            if histogram_info["n_dim"] == 2:
+                sse = awkward.sum(sse, axis = -1)
+
             self.add_prediction(histogram, sse, reconstructed_hist)
             idx += 1
 
