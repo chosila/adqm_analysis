@@ -52,6 +52,6 @@ class Histogram():
 
     def clean(self):
         """
-        TODO
+        
         """
         pass

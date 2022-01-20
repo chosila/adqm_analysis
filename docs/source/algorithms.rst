@@ -28,14 +28,6 @@ algorithms.ml\_algorithm module
    :undoc-members:
    :show-inheritance:
 
-algorithms.original\_ae module
-------------------------------
-
-.. automodule:: algorithms.original_ae
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 algorithms.pca module
 ---------------------
 

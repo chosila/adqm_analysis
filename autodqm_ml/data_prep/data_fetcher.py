@@ -349,7 +349,6 @@ class DataFetcher():
     def write_summary(self):
         """
         Write summary json of configuration.
-        TODO
         """
         return
 
