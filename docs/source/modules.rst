@@ -1,7 +1,7 @@
-autodqm_ml
+algorithms
 ==========
 
 .. toctree::
    :maxdepth: 4
 
-   autodqm_ml
+   algorithms

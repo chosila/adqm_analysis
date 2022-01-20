@@ -10,11 +10,11 @@ Welcome to autodqm_ml's documentation!
    :maxdepth: 3
    :caption: Contents:
 
-   autodqm_ml.algorithms
-   autodqm_ml.data_formats
-   autodqm_ml.data_prep
-   autodqm_ml.evaluation
-   autodqm_ml.plotting
+   algorithms
+   data_formats
+   data_prep
+   evaluation
+   plotting
    modules
 
 Indices and tables
