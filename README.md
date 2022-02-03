@@ -42,15 +42,10 @@ and then rerunning the command to create the `conda` env. The resulting `conda e
 
 **3. Install autodqm-ml**
 
-**Users** can install with:
-```
-python setup.py install
-```
-**Developers** are suggested to install with:
+Install with:
 ```
 pip install -e .
 ```
-to avoid rerunning the whole installation every time there is a change.
 
 Once your setup is installed, you can activate your python environment with
 ```
