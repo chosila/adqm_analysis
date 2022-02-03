@@ -118,7 +118,7 @@ class AutoEncoder(MLAlgorithm):
 
             callbacks = []
             if self.config["early_stopping"]:
-                callbacks.append(keras.callbacks.EarlyStopping(patience = self.config["early_stopping_rounds"))
+                callbacks.append(keras.callbacks.EarlyStopping(patience = self.config["early_stopping_rounds"]))
 
             model.fit(
                     inputs,
