@@ -15,7 +15,7 @@ from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml import utils
 
 DEFAULT_OPT = {
-        "batch_size" : 16,
+        "batch_size" : 16, 
         "val_batch_size" : 1024,
         "n_epochs" : 1000,
         "early_stopping" : True,
@@ -51,9 +51,13 @@ class AutoEncoder(MLAlgorithm):
 
         self.mode = kwargs.get('autoencoder_mode', 'individual')
         if not self.mode in ["individual", "simultaneous"]:
-            logger.exception("AutoEncoder : __init__] mode '%s' is not a recognized option for AutoEncoder. Currently available modes are 'individual' (default) and 'simultaneous'." % (self.mode))
+            logger.exception("[AutoEncoder : __init__] mode '%s' is not a recognized option for AutoEncoder. Currently available modes are 'individual' (default) and 'simultaneous'." % (self.mode))
             raise ValueError()
         self.models = {}
+
+        logger.debug("[AutoEncoder : __init__] Constructing AutoEncoder with the following training options and hyperparameters:")
+        for param, value in self.config.items():
+            logger.debug("\t %s : %s" % (param, str(value)))
 
 
     def load_model(self, model_file):

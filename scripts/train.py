@@ -83,10 +83,16 @@ if "json" in args.algorithm:
     if not os.path.exists(args.algorithm):
         algorithm_config_file = expand_path(args.algorithm)
     else:
-        algorithm_config_file = algo
+        algorithm_config_file = args.algorithm
+
     with open(algorithm_config_file, "r") as f_in:
         config = json.load(f_in)
 
+    # Add command line arguments to config
+    for k,v in vars(args).items():
+        if v is not None:
+            config[k] = v # note: if you specify an argument both through command line argument and json, we give precedence to the version from command line arguments 
+    
 else:
     config = vars(args)
     config["name"] = args.algorithm.lower() 
