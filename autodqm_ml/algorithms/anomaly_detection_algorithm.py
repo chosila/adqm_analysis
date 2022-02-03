@@ -72,6 +72,7 @@ class AnomalyDetectionAlgorithm():
 
         if histograms:
             self.histograms = histograms
+        self.histogram_name_map = {} # we replace "/" and spaces in input histogram names to play nicely with other packages, this map lets you go back and forth between them
 
         logger.debug("[AnomalyDetectionAlgorithm : load_data] Loading training data from file '%s'" % (self.input_file))
 
@@ -81,6 +82,7 @@ class AnomalyDetectionAlgorithm():
         # Set helpful metadata
         for histogram, histogram_info in self.histograms.items():
             self.histograms[histogram]["name"] = histogram.replace("/", "").replace(" ","")
+            self.histogram_name_map[self.histograms[histogram]["name"]] = histogram
 
             a = awkward.to_numpy(df[histogram][0])
             self.histograms[histogram]["shape"] = a.shape
@@ -134,9 +136,9 @@ class AnomalyDetectionAlgorithm():
         self.n_train = awkward.sum(df.train_label == 0)
         self.n_test = awkward.sum(df.train_label == 1)
         self.df = df
+        self.n_histograms = len(list(self.histograms.keys()))
 
-
-        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (len(list(self.histograms.keys())), self.n_train, self.n_test))
+        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (self.n_histograms, self.n_train, self.n_test))
 
         self.data_is_loaded = True
 

@@ -59,6 +59,13 @@ parser.add_argument(
     default = None
 )
 parser.add_argument(
+    "--autoencoder_mode",
+    help = "specify whether you want to train an autoencoder for each histogram ('individual') or a single autoencoder on all histograms ('simultaneous')",
+    type = str,
+    required = False,
+    default = None
+)
+parser.add_argument(
     "--debug",
     help = "run logger in DEBUG mode (INFO is default)",
     required = False,

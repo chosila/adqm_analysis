@@ -3,6 +3,7 @@ import pandas
 import numpy
 import json
 import awkward
+import copy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,25 +15,45 @@ from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml import utils
 
 DEFAULT_OPT = {
+        "batch_size" : 16,
+        "val_batch_size" : 1024,
+        "n_epochs" : 1000,
+        "early_stopping" : True,
+        "early_stopping_rounds" : 3,
         "n_hidden_layers" : 2,
-        "n_nodes" : 25,
+        "n_nodes" : 10,
         "n_components" : 3,
         "kernel_1d" : 3,
         "kernel_2d" : 3,
+        "strides_1d" : 1,
+        "strides_2d" : 1,
+        "dropout" : 0.0,
+        "batch_norm" : False,
         "n_filters" : 8
 }
 
 class AutoEncoder(MLAlgorithm):
     """
     Autoencoder base class.
+
+    :param config: dictionary with hyperparameters for autoencoder training. Any hyperparameters not specified will be taken from the default values in `DEFAULT_OPT`
+    :type config: dict
+    :param mode: string to specify whether you want to train an autoencoder for each histogram ("individual") or a single autoencoder on all histograms ("simultaneous")
+    :type mode: str
     """
     def __init__(self, **kwargs):
         super(AutoEncoder, self).__init__(**kwargs)
 
         self.config = utils.update_dict(
                 original = DEFAULT_OPT,
-                new = self.__dict__
+                new = kwargs.get('config', {})
         )
+
+        self.mode = kwargs.get('autoencoder_mode', 'individual')
+        if not self.mode in ["individual", "simultaneous"]:
+            logger.exception("AutoEncoder : __init__] mode '%s' is not a recognized option for AutoEncoder. Currently available modes are 'individual' (default) and 'simultaneous'." % (self.mode))
+            raise ValueError()
+        self.models = {}
 
 
     def load_model(self, model_file):
@@ -47,66 +68,129 @@ class AutoEncoder(MLAlgorithm):
         """
 
         """
+        logger.debug("[AutoEncoder : save_model] Saving trained autoencoder to file '%s'." % (model_file))
         model.save(model_file)
 
 
-    def train(self, n_epochs = 1000, batch_size = 128):
+    def train(self):
         """
 
         """
-        model_file = "%s/autoencoder_%s.h5" % (self.output_dir, self.tag)
-        if os.path.exists(model_file):
-            logger.warning("[AutoEncoder : train] A trained AutoEncoder alread exists with tag '%s' at file '%s'. We will load the saved model from the file rather than retraining. If you wish to retrain please provide a new tag or delete the old outputs." % (self.tag, model_file))
-            self.model = self.load_model(model_file)
-            return
+        if self.mode == "simultaneous":
+            self.models = { None : None }
+            logger.debug("[AutoEncoder : train] Mode selected as 'simultaneous', meaning a single autoencoder will be trained simultaneously on all histograms. Use 'individual' if you wish to train one autoencoder for each histogram.")
+        elif self.mode == "individual":
+            self.models = { k : None for k,v in self.histograms.items() } #copy.deepcopy(self.histograms)
+            logger.debug("[AutoEncoder : train] Mode selected as 'individual', meaning one autoencoder will be trained for each histogram. Use 'simultaneous' if you wish to train a single autoencoder for all histograms.")
 
-        inputs, outputs = self.make_inputs(split = "train")
-        inputs_val, outputs_val = self.make_inputs(split = "test")
+        for histogram, histogram_info in self.models.items():
+            if histogram is None:
+                model_file = "%s/autoencoder_%s.h5" % (self.output_dir, self.tag)
+            else:
+                model_file = "%s/autoencoder_%s_%s.h5" % (self.output_dir, histogram, self.tag)
+            
+            if os.path.exists(model_file):
+                logger.warning("[AutoEncoder : train] A trained AutoEncoder already exists with tag '%s' at file '%s'. We will load the saved model from the file rather than retraining. If you wish to retrain please provide a new tag or delete the old outputs." % (self.tag, model_file))
+                self.models[histogram] = self.load_model(model_file)
+                return
 
-        self.model = AutoEncoder_DNN(self.histograms, **self.config).model()
-       
-        self.model.compile(
-                optimizer = keras.optimizers.Adam(), 
-                loss = keras.losses.MeanSquaredError()
-        )
 
-        self.model.fit(
-                inputs,
-                outputs,
-                validation_data = (inputs_val, outputs_val),
-                callbacks = [keras.callbacks.EarlyStopping(patience = 3)],
-                epochs = n_epochs,
-                batch_size = batch_size
-        )
-        self.save_model(self.model, model_file)
+            inputs, outputs = self.make_inputs(split = "train", histogram_name = histogram)
+            inputs_val, outputs_val = self.make_inputs(split = "test", histogram_name = histogram)
+
+            if histogram is None:
+                hist_name = str(list(self.models.keys()))
+            else:
+                hist_name = histogram
+            logger.debug("[AutoEncoder : train] Training autoencoder with %d dimensions in latent space for histogram(s) '%s' with %d training examples." % (self.config["n_components"], hist_name, len(list(inputs.values())[0]))) 
+
+            if self.mode == "simultaneous":
+                histograms = self.histograms
+            elif self.mode == "individual":
+                histograms = { histogram : self.histograms[histogram] }
+
+            model = AutoEncoder_DNN(histograms, **self.config).model()
+           
+            model.compile(
+                    optimizer = keras.optimizers.Adam(), 
+                    loss = keras.losses.MeanSquaredError()
+            )
+
+            callbacks = []
+            if self.config["early_stopping"]:
+                callbacks.append(keras.callbacks.EarlyStopping(patience = self.config["early_stopping_rounds"))
+
+            model.fit(
+                    inputs,
+                    outputs,
+                    validation_data = (inputs_val, outputs_val),
+                    callbacks = callbacks, 
+                    epochs = self.config["n_epochs"],
+                    batch_size = self.config["batch_size"]
+            )
+            
+            self.save_model(model, model_file)
+            self.models[histogram] = model
 
     
     def predict(self, batch_size = 1024):
-        inputs, outputs = self.make_inputs(split = "all")
-        pred = self.model.predict(inputs, batch_size = batch_size)
+        for histogram, model in self.models.items():
+            inputs, outputs = self.make_inputs(split = "all", histogram_name = histogram)
+            predictions = model.predict(inputs, batch_size = batch_size)
 
-        idx = 0
-        for histogram, histogram_info in self.histograms.items():
-            original_hist = self.df[histogram]
-            if len(self.histograms.items()) >= 2:
-                reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
+            if self.mode == "simultaneous" and self.n_histograms >= 2:
+                predictions = { name : pred for name, pred in zip(model.output_names, predictions) }
             else:
-                reconstructed_hist = awkward.flatten(awkward.from_numpy(pred), axis = -1)
+                predictions = { model.output_names[0] : predictions }
 
-            sse = awkward.sum(
-                    (original_hist - reconstructed_hist) ** 2,
-                    axis = -1
-            )
+            for name, pred in predictions.items():
+                hist_name = self.histogram_name_map[name.replace("output_", "")] # shape [n_runs, histogram dimensions, 1]
+                original_hist = self.df[hist_name] # shape [n_runs, histogram dimensions]
 
-            # For 2d histograms, we need to sum over one more axis to get a single SSE score for each run
-            if histogram_info["n_dim"] == 2:
-                sse = awkward.sum(sse, axis = -1)
+                reconstructed_hist = awkward.flatten( # change shape from [n_runs, histogram dimensions, 1] -> [n_runs, histogram dimensions]
+                        awkward.from_numpy(pred),
+                        axis = -1 
+                )
 
-            self.add_prediction(histogram, sse, reconstructed_hist)
-            idx += 1
+                sse = awkward.sum( # perform sum along inner-most axis, i.e. first histogram dimension
+                        (original_hist - reconstructed_hist) ** 2,
+                        axis = -1
+                )
+                
+                # For 2d histograms, we need to sum over one more axis to get a single SSE score for each run
+                if self.histograms[hist_name]["n_dim"] == 2:
+                    sse = awkward.sum(sse, axis = -1) # second histogram dimension
+
+                self.add_prediction(hist_name, sse, reconstructed_hist) 
+ 
+            """
+            idx = 0
+            for histogram, histogram_info in self.histograms.items():
+                original_hist = self.df[histogram]
+                if self.n_histograms >= 2: 
+                    #reconstructed_hist = awkward.flatten(
+                    #        awkward.from_numpy(pred["output_" + histogram_info["name"]]),
+                    #        axis = -1
+                    #)
+                    reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
+                else:
+                    #reconstructed_hist = awkward.flatten(awkward.from_numpy(pred), axis = -1)
+
+                sse = awkward.sum(
+                        (original_hist - reconstructed_hist) ** 2,
+                        axis = -1
+                )
+
+                # For 2d histograms, we need to sum over one more axis to get a single SSE score for each run
+                if histogram_info["n_dim"] == 2:
+                    sse = awkward.sum(sse, axis = -1)
+
+                self.add_prediction(histogram, sse, reconstructed_hist)
+                idx += 1
+            """
 
 
-    def make_inputs(self, split = None):
+    def make_inputs(self, split = None, histogram_name = None):
         """
 
         """
@@ -123,21 +207,28 @@ class AutoEncoder(MLAlgorithm):
         df = self.df[cut]
 
         for histogram, info in self.histograms.items():
+            if histogram_name is not None: # self.mode == "individual", i.e. separate autoencoder for each histogram
+                if not histogram == histogram_name: # only grab the relevant histogram for this autoencoder
+                    continue
+
             data = tf.convert_to_tensor(df[histogram])
             inputs["input_" + info["name"]] = data
             outputs["output_" + info["name"]] = data
 
+        
+
         return inputs, outputs
 
 
-class AutoEncoder_DNN(keras.models.Model):
+#class AutoEncoder_DNN(keras.models.Model):
+class AutoEncoder_DNN():
     """
     Model defined through the Keras Model Subclassing API: https://www.tensorflow.org/guide/keras/custom_layers_and_models
     An AutoEncoder instance owns a single AutoEncoder_DNN, which is the actual implementation of the DNN.
 
     """
     def __init__(self, histograms, **kwargs): 
-        super(AutoEncoder_DNN, self).__init__()
+        #super(AutoEncoder_DNN, self).__init__()
 
         self.n_histograms = len(histograms.keys())
 
@@ -179,7 +270,11 @@ class AutoEncoder_DNN(keras.models.Model):
 
 
     def model(self):
-        model = keras.models.Model(inputs = self.inputs, outputs = self.outputs)
+        model = keras.models.Model(
+                inputs = self.inputs,
+                outputs = self.outputs,
+                name = "autoencoder"
+        )
         model.summary()
         return model
 
@@ -209,7 +304,12 @@ class AutoEncoder_DNN(keras.models.Model):
                         activation = "relu",
                         name = name
                 )(layer)
-        
+            if self.batch_norm:
+                layer = keras.layers.BatchNormalization(name = name + "_batch_norm")
+            if self.dropout > 0:
+                layer = keras.layers.Dropout(self.dropout, name = name + "_dropout")
+
+
         encoder = keras.layers.Flatten()(layer)
         return input, encoder
 
@@ -229,10 +329,14 @@ class AutoEncoder_DNN(keras.models.Model):
                 activation = "relu"
                 n_filters = 1
                 name = "output_%s" % (info["name"])
+                batch_norm = False
+                dropout = 0
             else:
                 activation = "relu"
                 n_filters = self.n_filters 
                 name = "decoder_%d_%s" % (i, info["name"])
+                batch_norm = self.batch_norm
+                dropout = self.dropout
 
             if info["n_dim"] == 1:
                 layer = keras.layers.Conv1DTranspose(
@@ -252,6 +356,10 @@ class AutoEncoder_DNN(keras.models.Model):
                         activation = activation,
                         name = name
                 )(layer)
+            if batch_norm:
+                layer = keras.layers.BatchNormalization(name = name + "_batch_norm")
+            if dropout > 0:
+                layer = keras.layers.Dropout(self.dropout, name = name + "_dropout") 
 
         output = layer
         return output

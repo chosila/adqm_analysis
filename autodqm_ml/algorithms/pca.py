@@ -64,6 +64,8 @@ class PCA(MLAlgorithm):
         :param model_file: folder name to place trained PCA pickles
         :type model_file: str
         """
+        logger.debug("[PCA : save_model] Saving trained PCA to file '%s'." % (model_file))
+
         os.system("mkdir -p %s" % self.output_dir)
         pcaParams = {
                 'name' : model_file.split("/")[-1].replace(".json", ""),
@@ -141,7 +143,6 @@ class PCA(MLAlgorithm):
             pca.fit(input)
             self.model[histogram] = pca
             
-            logger.debug("[PCA : train] Saving trained PCA to file '%s'." % (model_file))
             self.save_model(pca, model_file)
 
     
