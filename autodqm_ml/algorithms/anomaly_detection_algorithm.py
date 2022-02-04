@@ -2,6 +2,7 @@ import os
 import pandas
 import numpy
 import awkward
+import json
 
 from autodqm_ml import utils
 from autodqm_ml.data_formats.histogram import Histogram
@@ -162,3 +163,13 @@ class AnomalyDetectionAlgorithm():
         self.output_file = "%s/%s.parquet" % (self.output_dir, self.input_file.split("/")[-1].replace(".parquet", ""))
         logger.info("[AnomalyDetectionAlgorithm : save] Saving output with additional fields to file '%s'." % (self.output_file))
         awkward.to_parquet(self.df, self.output_file)
+
+        self.config_file = "%s/%s_%s.json" % (self.output_dir, self.name, self.tag)
+        config = {}
+        for k,v in vars(self).items():
+            if utils.is_json_serializable(v):
+                config[k] = v
+
+        logger.info("[AnomalyDetectionAlgorithm : save] Saving AnomalyDetectionAlgorithm config to file '%s'." % (self.config_file))
+        with open(self.config_file, "w") as f_out:
+            json.dump(config, f_out, sort_keys = True, indent = 4)

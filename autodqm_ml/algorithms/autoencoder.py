@@ -21,7 +21,7 @@ DEFAULT_OPT = {
         "early_stopping" : True,
         "early_stopping_rounds" : 3,
         "n_hidden_layers" : 2,
-        "n_nodes" : 10,
+        "n_nodes" : 25,
         "n_components" : 3,
         "kernel_1d" : 3,
         "kernel_2d" : 3,

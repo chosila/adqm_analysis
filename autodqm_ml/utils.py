@@ -6,6 +6,7 @@ Original author: Massimiliano Galli
 import os
 import copy
 import subprocess
+import json
 
 import logging
 from rich.logging import RichHandler
@@ -146,3 +147,12 @@ def check_proxy():
         return proxy
 
 
+def is_json_serializable(x):
+    """
+    Returns True if `x` is json serializable, False if not
+    """
+    try:
+        json.dumps(x)
+        return True
+    except:
+        return False
