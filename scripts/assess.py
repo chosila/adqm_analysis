@@ -135,6 +135,7 @@ def main(args):
                 "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
         }
         for split, split_info in splits.items():
+            recos_by_label = { k : {} for k,v in info["algorithms"].items() }
             for name, id in split_info:
                 runs_set = runs[runs[split] == id]
                 if len(runs_set) == 0:
@@ -143,19 +144,16 @@ def main(args):
                 recos = {}
                 for algorithm, algorithm_info in info["algorithms"].items():
                     recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
+                    recos_by_label[algorithm][name] = { "score" : runs_set[algorithm_info["score"]] }
+
                 h_name = h.replace("/", "").replace(" ", "")
                 save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (split, name)
                 make_sse_plot(h_name, recos, save_name)
 
+            for algorithm, recos_alg in recos_by_label.items():
+                save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (algorithm, split)
+                make_sse_plot(h_name, recos_alg, save_name) 
 
-        #for set, id in zip(["train", "test"], [0, 1]):
-        #    runs_set = runs[runs.train_label == id]
-        #    recos = {}
-        #    for algorithm, algorithm_info in info["algorithms"].items():
-        #        recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
-        #    h_name = h.replace("/", "").replace(" ", "")
-        #    save_name = args.output_dir + "/" + h_name + "_sse_%s.pdf" % set
-        #    make_sse_plot(h_name, recos, save_name)
 
     # Plots of original/reconstructed histograms
     if args.runs is None:
