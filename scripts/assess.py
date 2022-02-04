@@ -7,7 +7,7 @@ import numpy
 from autodqm_ml.utils import setup_logger
 from autodqm_ml.utils import expand_path
 from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot, plot_roc_curve
-from autodqm_ml.evaluation.roc_tools import calc_roc_and_unc
+from autodqm_ml.evaluation.roc_tools import calc_roc_and_unc, print_eff_table
 from autodqm_ml.constants import kANOMALOUS, kGOOD
 
 def parse_arguments():
@@ -179,7 +179,8 @@ def main(args):
             save_name = args.output_dir + "/" + h_name + "_roc.pdf"
             plot_roc_curve(h_name, roc_results[h], save_name)
             plot_roc_curve(h_name, roc_results[h], save_name.replace(".pdf", "_log.pdf"), log = True)
-
+            print_eff_table(h_name, roc_results[h])
+            
 
     # Plots of original/reconstructed histograms
     if args.runs is None:

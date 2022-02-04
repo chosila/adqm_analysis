@@ -105,6 +105,38 @@ def calc_roc_and_unc(y, pred, sample_weight = None, n_bootstrap = 100, interp = 
     return results
 
 
+def print_eff_table(name, results):
+    logger.debug("[roc_tools.py : print_eff_table] Printing anomaly detection efficiencies LaTeX table for histogram '%s'." % name)
+
+    anom_effs = [0.5, 0.9, 0.99]
+    effs = {}
+    for algorithm, res in results.items():
+        tprs = []
+        fprs = []
+
+        for eff in anom_effs:
+            sig_eff, idx = find_nearest(res["tpr"], eff)
+            tprs.append(res["tpr"][idx])
+            fprs.append(res["fpr"][idx])
+
+        effs[algorithm] = {
+               "fpr" : fprs,
+               "tpr" : tprs,
+               "auc" : res["auc"],
+               "auc_unc" : res["auc_unc"]
+        }
+
+    print("\\begin{center} \\scriptsize")
+    print("\\begin{tabular}{r|c|l|l|l}")
+    print("\\multicolumn{5}{c}{%s} \\\\ \\hline \\hline" % name)
+    print("\\multirow{3}{*}{Algorithm} & \\multicolumn{4}{c}{Metric (\\%)} \\\\ \\cline{2-5}")
+    print(" & \\multirow{2}{*}{AUC} & \\multicolumn{3}{c}{False Alarm Rate ($\\alpha_{\\text{far}}$) at fixed $\\epsilon_{\\text{anom}}$} \\\\ \\cline{3-5}")
+    print(" & & $\\alpha_{\\text{far}} (\\epsilon_{\\text{anom}} = %d\\%%)$ & $\\alpha_{\\text{far}} (\\epsilon_{\\text{anom}} = %d\\%%)$ & $\\alpha_{\\text{far}} (\\epsilon_{\\text{anom}} = %d\\%%)$ \\\\ \\hline" % (int(anom_effs[0] * 100.), int(anom_effs[1] * 100.), int(anom_effs[2] * 100.)))
+    for algo, eff in effs.items():
+        print("%s & %.3f $\\pm$ %.3f & %.1f\\%% & %.1f\\%% & %.1f\\%% \\\\ \\hline" % (algo, eff["auc"], eff["auc_unc"], eff["fpr"][0] * 100., eff["fpr"][1] * 100., eff["fpr"][2] * 100.))
+    print("\\end{tabular} \\end{center}")
+
+
 def find_nearest(array,value):
     val = numpy.ones_like(array)*value
     idx = (numpy.abs(array-val)).argmin()
