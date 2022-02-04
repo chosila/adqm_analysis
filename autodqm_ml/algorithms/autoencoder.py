@@ -17,6 +17,7 @@ from autodqm_ml import utils
 DEFAULT_OPT = {
         "batch_size" : 128, 
         "val_batch_size" : 1024,
+        "learning_rate" : 0.001,
         "n_epochs" : 1000,
         "early_stopping" : True,
         "early_stopping_rounds" : 3,
@@ -50,6 +51,9 @@ class AutoEncoder(MLAlgorithm):
         )
 
         self.mode = kwargs.get('autoencoder_mode', 'individual')
+        if self.mode is None:
+            self.mode = "individual"
+
         if not self.mode in ["individual", "simultaneous"]:
             logger.exception("[AutoEncoder : __init__] mode '%s' is not a recognized option for AutoEncoder. Currently available modes are 'individual' (default) and 'simultaneous'." % (self.mode))
             raise ValueError()
@@ -116,7 +120,7 @@ class AutoEncoder(MLAlgorithm):
             model = AutoEncoder_DNN(histograms, **self.config).model()
            
             model.compile(
-                    optimizer = keras.optimizers.Adam(), 
+                    optimizer = keras.optimizers.Adam(learning_rate = self.config["learning_rate"]), 
                     loss = keras.losses.MeanSquaredError()
             )
 
