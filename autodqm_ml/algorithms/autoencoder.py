@@ -15,13 +15,13 @@ from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml import utils
 
 DEFAULT_OPT = {
-        "batch_size" : 16, 
+        "batch_size" : 128, 
         "val_batch_size" : 1024,
         "n_epochs" : 1000,
         "early_stopping" : True,
         "early_stopping_rounds" : 3,
         "n_hidden_layers" : 2,
-        "n_nodes" : 25,
+        "n_nodes" : 50,
         "n_components" : 3,
         "kernel_1d" : 3,
         "kernel_2d" : 3,
@@ -29,7 +29,7 @@ DEFAULT_OPT = {
         "strides_2d" : 1,
         "dropout" : 0.0,
         "batch_norm" : False,
-        "n_filters" : 8
+        "n_filters" : 12
 }
 
 class AutoEncoder(MLAlgorithm):
@@ -167,32 +167,6 @@ class AutoEncoder(MLAlgorithm):
 
                 self.add_prediction(hist_name, sse, reconstructed_hist) 
  
-            """
-            idx = 0
-            for histogram, histogram_info in self.histograms.items():
-                original_hist = self.df[histogram]
-                if self.n_histograms >= 2: 
-                    #reconstructed_hist = awkward.flatten(
-                    #        awkward.from_numpy(pred["output_" + histogram_info["name"]]),
-                    #        axis = -1
-                    #)
-                    reconstructed_hist = awkward.flatten(awkward.from_numpy(pred[idx]), axis = -1) 
-                else:
-                    #reconstructed_hist = awkward.flatten(awkward.from_numpy(pred), axis = -1)
-
-                sse = awkward.sum(
-                        (original_hist - reconstructed_hist) ** 2,
-                        axis = -1
-                )
-
-                # For 2d histograms, we need to sum over one more axis to get a single SSE score for each run
-                if histogram_info["n_dim"] == 2:
-                    sse = awkward.sum(sse, axis = -1)
-
-                self.add_prediction(histogram, sse, reconstructed_hist)
-                idx += 1
-            """
-
 
     def make_inputs(self, split = None, histogram_name = None):
         """
@@ -224,16 +198,11 @@ class AutoEncoder(MLAlgorithm):
         return inputs, outputs
 
 
-#class AutoEncoder_DNN(keras.models.Model):
 class AutoEncoder_DNN():
     """
-    Model defined through the Keras Model Subclassing API: https://www.tensorflow.org/guide/keras/custom_layers_and_models
-    An AutoEncoder instance owns a single AutoEncoder_DNN, which is the actual implementation of the DNN.
-
+    An AutoEncoder instance owns AutoEncoder_DNN(s), which is the actual implementation of the DNN.
     """
     def __init__(self, histograms, **kwargs): 
-        #super(AutoEncoder_DNN, self).__init__()
-
         self.n_histograms = len(histograms.keys())
 
         self.__dict__.update(kwargs)

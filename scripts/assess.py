@@ -54,6 +54,12 @@ def parse_arguments():
         default = None
     )
     parser.add_argument(
+        "--make_webpage",
+        required=False,
+        action="store_true",
+        help="make a nicely browsable web page"
+    ) 
+    parser.add_argument(
         "--debug",
         help = "run logger in DEBUG mode (INFO is default)",
         required = False,
@@ -180,6 +186,12 @@ def main(args):
             save_name = args.output_dir + "/" + h_name + "_Run%d.pdf" % run_number
             make_original_vs_reconstructed_plot(h_name, original, recos, run_number, save_name) 
 
+    logger.info("[assess.py] Plots written to directory '%s'." % (args.output_dir))
+
+    if args.make_webpage:
+        os.system("cp web/index.php %s" % args.output_dir)
+        os.system("chmod 755 %s" % args.output_dir)
+        os.system("chmod 755 %s/*" % args.output_dir)
 
 if __name__ == "__main__":
     args = parse_arguments()
