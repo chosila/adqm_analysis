@@ -6,7 +6,8 @@ import numpy
 
 from autodqm_ml.utils import setup_logger
 from autodqm_ml.utils import expand_path
-from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot
+from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot, plot_roc_curve
+from autodqm_ml.evaluation.roc_tools import calc_roc_and_unc
 from autodqm_ml.constants import kANOMALOUS, kGOOD
 
 def parse_arguments():
@@ -129,11 +130,12 @@ def main(args):
                 logger.info("\t Run number : %d, Anomaly Score : %.2e" % (runs_sorted.run_number[i], runs_sorted[algorithm_info["score"]][i]))
 
     # Histogram of sse for algorithms
+    splits = {
+            "train_label" : [("train", 0), ("test", 1)],
+            "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
+    }
+ 
     for h, info in histograms.items():
-        splits = {
-                "train_label" : [("train", 0), ("test", 1)],
-                "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
-        }
         for split, split_info in splits.items():
             recos_by_label = { k : {} for k,v in info["algorithms"].items() }
             for name, id in split_info:
@@ -153,6 +155,30 @@ def main(args):
             for algorithm, recos_alg in recos_by_label.items():
                 save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (algorithm, split)
                 make_sse_plot(h_name, recos_alg, save_name) 
+
+
+    # ROC curves (if there are labeled runs)
+    has_labeled_runs = True
+    labeled_runs_cut = runs.run_number < 0 # dummy all False cut
+    for name, id in splits["label"]:
+        cut = runs.label == id
+        labeled_runs_cut = labeled_runs_cut | cut
+        runs_set = runs[cut]
+        has_labeled_runs = has_labeled_runs and (len(runs_set) > 0)
+
+    if has_labeled_runs:
+        labeled_runs = runs[labeled_runs_cut]
+        roc_results = {}
+        for h, info in histograms.items():
+            roc_results[h] = {}
+            for algorithm, algorithm_info in info["algorithms"].items():
+                pred = labeled_runs[algorithm_info["score"]]
+                roc_results[h][algorithm] = calc_roc_and_unc(labeled_runs.label, pred)
+
+            h_name = h.replace("/", "").replace(" ", "")
+            save_name = args.output_dir + "/" + h_name + "_roc.pdf"
+            plot_roc_curve(h_name, roc_results[h], save_name)
+            plot_roc_curve(h_name, roc_results[h], save_name.replace(".pdf", "_log.pdf"), log = True)
 
 
     # Plots of original/reconstructed histograms

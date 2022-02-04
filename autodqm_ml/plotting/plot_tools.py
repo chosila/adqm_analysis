@@ -210,3 +210,48 @@ def plotMSESummary(original_hists, reconstructed_hists, threshold, hist_paths, r
     ax.text(1.1*max(mse), 0.5*max(hist), text, wrap=True, bbox=props)
     
     fig.savefig(f'plots/{algo}/MSE_Summary.png', bbox_inches='tight')
+
+
+def plot_roc_curve(h_name, results, save_name, **kwargs):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.yaxis.set_ticks_position('both')
+    ax1.grid(True)
+
+    log = kwargs.get("log", False)
+
+    idx = 0
+    for algo, res in results.items():
+        ax1.plot(
+                res["fpr"],
+                res["tpr"],
+                color = "C%d" % (idx+1),
+                label = algo + " [AUC = %.3f +/- %.3f]" % (res["auc"], res["auc_unc"])
+        )
+        ax1.fill_between(
+                res["fpr"],
+                res["tpr"] - (res["tpr_unc"] / 2.),
+                res["tpr"] + (res["tpr_unc"] / 2.),
+                color = "C%d" % (idx+1),
+                alpha = 0.25
+        )
+        idx += 1
+
+    if not log:
+        plt.ylim(0,1)
+        plt.xlim(0,1)
+    else:
+        plt.xlim(0.005, 1)
+        plt.ylim(0,1)
+        ax1.set_xscale("log")
+
+    plt.xlabel("False Anomaly Rate (FPR)")
+    plt.ylabel("Anomaly Detection Efficiency (TPR)")
+
+    legend = ax1.legend(loc='lower right')
+
+    logger.debug("[plot_tools.py : plot_roc_curve] Writing plot to file '%s'." % (save_name))
+    plt.savefig(save_name)
+    plt.savefig(save_name.replace(".pdf", ".png"))
+    plt.clf()
+
