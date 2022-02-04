@@ -153,6 +153,8 @@ def main(args):
                 make_sse_plot(h_name, recos, save_name)
 
             for algorithm, recos_alg in recos_by_label.items():
+                if not recos_alg:
+                    continue
                 save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (algorithm, split)
                 make_sse_plot(h_name, recos_alg, save_name) 
 
