@@ -6,7 +6,8 @@ import numpy
 
 from autodqm_ml.utils import setup_logger
 from autodqm_ml.utils import expand_path
-from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot
+from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot, plot_roc_curve
+from autodqm_ml.evaluation.roc_tools import calc_roc_and_unc, print_eff_table
 from autodqm_ml.constants import kANOMALOUS, kGOOD
 
 def parse_arguments():
@@ -53,6 +54,12 @@ def parse_arguments():
         required = False,
         default = None
     )
+    parser.add_argument(
+        "--make_webpage",
+        required=False,
+        action="store_true",
+        help="make a nicely browsable web page"
+    ) 
     parser.add_argument(
         "--debug",
         help = "run logger in DEBUG mode (INFO is default)",
@@ -123,12 +130,14 @@ def main(args):
                 logger.info("\t Run number : %d, Anomaly Score : %.2e" % (runs_sorted.run_number[i], runs_sorted[algorithm_info["score"]][i]))
 
     # Histogram of sse for algorithms
+    splits = {
+            "train_label" : [("train", 0), ("test", 1)],
+            "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
+    }
+ 
     for h, info in histograms.items():
-        splits = {
-                "train_label" : [("train", 0), ("test", 1)],
-                "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
-        }
         for split, split_info in splits.items():
+            recos_by_label = { k : {} for k,v in info["algorithms"].items() }
             for name, id in split_info:
                 runs_set = runs[runs[split] == id]
                 if len(runs_set) == 0:
@@ -137,19 +146,43 @@ def main(args):
                 recos = {}
                 for algorithm, algorithm_info in info["algorithms"].items():
                     recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
+                    recos_by_label[algorithm][name] = { "score" : runs_set[algorithm_info["score"]] }
+
                 h_name = h.replace("/", "").replace(" ", "")
                 save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (split, name)
                 make_sse_plot(h_name, recos, save_name)
 
+            for algorithm, recos_alg in recos_by_label.items():
+                if not recos_alg:
+                    continue
+                save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (algorithm, split)
+                make_sse_plot(h_name, recos_alg, save_name) 
 
-        #for set, id in zip(["train", "test"], [0, 1]):
-        #    runs_set = runs[runs.train_label == id]
-        #    recos = {}
-        #    for algorithm, algorithm_info in info["algorithms"].items():
-        #        recos[algorithm] = { "score" : runs_set[algorithm_info["score"]] }
-        #    h_name = h.replace("/", "").replace(" ", "")
-        #    save_name = args.output_dir + "/" + h_name + "_sse_%s.pdf" % set
-        #    make_sse_plot(h_name, recos, save_name)
+
+    # ROC curves (if there are labeled runs)
+    has_labeled_runs = True
+    labeled_runs_cut = runs.run_number < 0 # dummy all False cut
+    for name, id in splits["label"]:
+        cut = runs.label == id
+        labeled_runs_cut = labeled_runs_cut | cut
+        runs_set = runs[cut]
+        has_labeled_runs = has_labeled_runs and (len(runs_set) > 0)
+
+    if has_labeled_runs:
+        labeled_runs = runs[labeled_runs_cut]
+        roc_results = {}
+        for h, info in histograms.items():
+            roc_results[h] = {}
+            for algorithm, algorithm_info in info["algorithms"].items():
+                pred = labeled_runs[algorithm_info["score"]]
+                roc_results[h][algorithm] = calc_roc_and_unc(labeled_runs.label, pred)
+
+            h_name = h.replace("/", "").replace(" ", "")
+            save_name = args.output_dir + "/" + h_name + "_roc.pdf"
+            plot_roc_curve(h_name, roc_results[h], save_name)
+            plot_roc_curve(h_name, roc_results[h], save_name.replace(".pdf", "_log.pdf"), log = True)
+            print_eff_table(h_name, roc_results[h])
+            
 
     # Plots of original/reconstructed histograms
     if args.runs is None:
@@ -180,6 +213,12 @@ def main(args):
             save_name = args.output_dir + "/" + h_name + "_Run%d.pdf" % run_number
             make_original_vs_reconstructed_plot(h_name, original, recos, run_number, save_name) 
 
+    logger.info("[assess.py] Plots written to directory '%s'." % (args.output_dir))
+
+    if args.make_webpage:
+        os.system("cp web/index.php %s" % args.output_dir)
+        os.system("chmod 755 %s" % args.output_dir)
+        os.system("chmod 755 %s/*" % args.output_dir)
 
 if __name__ == "__main__":
     args = parse_arguments()

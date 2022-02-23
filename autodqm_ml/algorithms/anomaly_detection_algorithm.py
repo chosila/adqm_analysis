@@ -2,6 +2,7 @@ import os
 import pandas
 import numpy
 import awkward
+import json
 
 from autodqm_ml import utils
 from autodqm_ml.data_formats.histogram import Histogram
@@ -72,6 +73,7 @@ class AnomalyDetectionAlgorithm():
 
         if histograms:
             self.histograms = histograms
+        self.histogram_name_map = {} # we replace "/" and spaces in input histogram names to play nicely with other packages, this map lets you go back and forth between them
 
         logger.debug("[AnomalyDetectionAlgorithm : load_data] Loading training data from file '%s'" % (self.input_file))
 
@@ -81,6 +83,7 @@ class AnomalyDetectionAlgorithm():
         # Set helpful metadata
         for histogram, histogram_info in self.histograms.items():
             self.histograms[histogram]["name"] = histogram.replace("/", "").replace(" ","")
+            self.histogram_name_map[self.histograms[histogram]["name"]] = histogram
 
             a = awkward.to_numpy(df[histogram][0])
             self.histograms[histogram]["shape"] = a.shape
@@ -134,9 +137,9 @@ class AnomalyDetectionAlgorithm():
         self.n_train = awkward.sum(df.train_label == 0)
         self.n_test = awkward.sum(df.train_label == 1)
         self.df = df
+        self.n_histograms = len(list(self.histograms.keys()))
 
-
-        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (len(list(self.histograms.keys())), self.n_train, self.n_test))
+        logger.debug("[AnomalyDetectionAlgorithm : load_data] Loaded data for %d histograms with %d events in training set and %d events in testing set." % (self.n_histograms, self.n_train, self.n_test))
 
         self.data_is_loaded = True
 
@@ -160,3 +163,13 @@ class AnomalyDetectionAlgorithm():
         self.output_file = "%s/%s.parquet" % (self.output_dir, self.input_file.split("/")[-1].replace(".parquet", ""))
         logger.info("[AnomalyDetectionAlgorithm : save] Saving output with additional fields to file '%s'." % (self.output_file))
         awkward.to_parquet(self.df, self.output_file)
+
+        self.config_file = "%s/%s_%s.json" % (self.output_dir, self.name, self.tag)
+        config = {}
+        for k,v in vars(self).items():
+            if utils.is_json_serializable(v):
+                config[k] = v
+
+        logger.info("[AnomalyDetectionAlgorithm : save] Saving AnomalyDetectionAlgorithm config to file '%s'." % (self.config_file))
+        with open(self.config_file, "w") as f_out:
+            json.dump(config, f_out, sort_keys = True, indent = 4)

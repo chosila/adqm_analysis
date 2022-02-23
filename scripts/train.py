@@ -10,25 +10,29 @@ from autodqm_ml.algorithms.autoencoder import AutoEncoder
 from autodqm_ml.utils import expand_path
 
 parser = argparse.ArgumentParser()
+
+# Required arguments
+parser.add_argument(
+    "--algorithm",
+    help = "name of algorithm ('PCA' or 'Autoencoder' or 'StatisticalTester') to train with default options OR path to json filed specifying particular options for training a given algorithm.",
+    type = str,
+    required = True
+)
+
+# Optional arguments
 parser.add_argument(
     "--output_dir",
     help = "output directory to place files in",
     type = str,
     required = False,
-    default = "output"
+    default = None
 )
 parser.add_argument(
     "--tag",
     help = "tag to identify output files",
     type = str,
     required = False,
-    default = "test"
-)
-parser.add_argument(
-    "--algorithm",
-    help = "name of algorithm ('PCA' or 'Autoencoder' or 'StatisticalTester') to train with default options OR path to json filed specifying particular options for training a given algorithm.",
-    type = str,
-    required = True
+    default = None
 )
 parser.add_argument(
     "--input_file",
@@ -59,6 +63,13 @@ parser.add_argument(
     default = None
 )
 parser.add_argument(
+    "--autoencoder_mode",
+    help = "specify whether you want to train an autoencoder for each histogram ('individual') or a single autoencoder on all histograms ('simultaneous')",
+    type = str,
+    required = False,
+    default = None
+)
+parser.add_argument(
     "--debug",
     help = "run logger in DEBUG mode (INFO is default)",
     required = False,
@@ -76,10 +87,16 @@ if "json" in args.algorithm:
     if not os.path.exists(args.algorithm):
         algorithm_config_file = expand_path(args.algorithm)
     else:
-        algorithm_config_file = algo
+        algorithm_config_file = args.algorithm
+
     with open(algorithm_config_file, "r") as f_in:
         config = json.load(f_in)
 
+    # Add command line arguments to config
+    for k,v in vars(args).items():
+        if v is not None:
+            config[k] = v # note: if you specify an argument both through command line argument and json, we give precedence to the version from command line arguments 
+    
 else:
     config = vars(args)
     config["name"] = args.algorithm.lower() 
@@ -113,8 +130,13 @@ else:
 
 if args.histograms is not None:
     histograms = {x : { "normalize" : True} for x in args.histograms.split(",")}
-else:
+elif isinstance(config["histograms"], str):
+    histograms = {x : { "normalize" : True} for x in config["histograms"].split(",")}
+elif isinstance(config["histograms"], dict):
     histograms = config["histograms"]
+else:
+    logger.exception("[train.py] The `histograms` argument should either be a csv list of histogram names (str) or a dictionary (if provided through a json config).")
+    raise RuntimeError()
 
 # Load data
 algorithm.load_data(
