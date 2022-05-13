@@ -1,4 +1,5 @@
 # AutoDQM_ML
+[![DOI](https://zenodo.org/badge/356313006.svg)](https://zenodo.org/badge/latestdoi/356313006)
 
 ## Description
 This repository contains tools relevant for training and evaluating anomaly detection algorithms on CMS DQM data.
