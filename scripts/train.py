@@ -41,6 +41,23 @@ parser.add_argument(
     required = False,
     default = None
 )
+
+parser.add_argument(
+    "--low_stat_threshold",
+    help = "Minimum number of entries required per histogram for training. If a histogram has less than the set minimum, the histogram will not be included in training.",
+    type = int,
+    required = False,
+    default = 10000
+)
+parser.add_argument(
+    "--train_highest_only",
+    help = "If True, only trains on the runs with the highest stats, or the highest number of entries. The test set becomes the remaining runs.",
+    type = bool,
+    required = False,
+    default = False
+)
+
+
 parser.add_argument(
     "--histograms",
     help = "csv list of histograms on which to train the ML algorithm. If multiple are supplied, for PCAs one PCA will be trained for each histogram, while for autoencoders, a single AutoEncoder taking each of the histograms as inputs will be trained.",
@@ -48,6 +65,14 @@ parser.add_argument(
     required = False,
     default = None
 )
+# To be added when I figure out how to add both safely.
+#parser.add_argument(
+#    "--train_size",
+#    help = "proportion of data to be used in model training (as opposed to model testing). Entering a number less than 0 does something weird, but I forgot what that is."
+#    required = False,
+#    default = 0.5,
+#)
+
 parser.add_argument(
     "--reference",
     help = "reference run number to use for comparisons with StatisticalTester",
@@ -77,6 +102,7 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
+
 os.system("mkdir -p %s/" % args.output_dir)
 
 logger_mode = "DEBUG" if args.debug else "INFO"
@@ -95,11 +121,11 @@ if "json" in args.algorithm:
     # Add command line arguments to config
     for k,v in vars(args).items():
         if v is not None:
-            config[k] = v # note: if you specify an argument both through command line argument and json, we give precedence to the version from command line arguments 
-    
+            config[k] = v # note: if you specify an argument both through command line argument and json, we give precedence to the version from command line arguments
+
 else:
     config = vars(args)
-    config["name"] = args.algorithm.lower() 
+    config["name"] = args.algorithm.lower()
 
 if not config["name"] in ["autoencoder", "pca", "statistical_tester"]:
     message = "[train.py] Requested algorithm '%s' is not in the supported list of algorithms ['autoencoder', 'pca']." % (config["name"])
@@ -123,7 +149,7 @@ if args.histograms is None and "histograms" not in config.keys():
     logger.exception(message)
     raise RuntimeError()
 
-if args.input_file is not None: # 
+if args.input_file is not None: #
     training_file = args.input_file
 else:
     training_file = config["input_file"]
@@ -140,7 +166,7 @@ else:
 
 # Load data
 algorithm.load_data(
-    file = training_file,
+    file= training_file,
     histograms = histograms
 )
 
@@ -152,4 +178,4 @@ if isinstance(algorithm, MLAlgorithm):
 algorithm.predict()
 
 # Save model and new df with score zipped in
-algorithm.save() 
+algorithm.save()
