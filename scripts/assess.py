@@ -4,9 +4,11 @@ import argparse
 import awkward
 import numpy
 
+import pandas
+
 from autodqm_ml.utils import setup_logger
 from autodqm_ml.utils import expand_path
-from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot, plot_roc_curve
+from autodqm_ml.plotting.plot_tools import make_original_vs_reconstructed_plot, make_sse_plot, plot_roc_curve, plot_rescaled_score_hist
 from autodqm_ml.evaluation.roc_tools import calc_roc_and_unc, print_eff_table
 from autodqm_ml.constants import kANOMALOUS, kGOOD
 
@@ -61,6 +63,12 @@ def parse_arguments():
         help="make a nicely browsable web page"
     ) 
     parser.add_argument(
+        "--hist_layout",
+        type = str,
+        required = False,
+        default = 'flatten'
+    )
+    parser.add_argument(
         "--debug",
         help = "run logger in DEBUG mode (INFO is default)",
         required = False,
@@ -100,8 +108,15 @@ def main(args):
     logger_mode = "DEBUG" if args.debug else "INFO"
     log_file = "%s/fetch_data_log_%s.txt" % (args.output_dir, "assess")
     logger = setup_logger(logger_mode, log_file)
-
-
+    
+    stats = {
+             'hist': [],
+             'dim_0': [],
+             'dim_1': [],
+             'algo': [],
+             'avg_an_score': [],
+             'std_an_score': []
+    }        
     histograms = { x : {"algorithms" : {}} for x in args.histograms.split(",") }
 
     runs = awkward.from_parquet(args.input_file)
@@ -121,6 +136,7 @@ def main(args):
     # Print out runs with N highest sse scores for each histogram
     N = 5
     for h, info in histograms.items():
+        score_hist_data = {'algo':[], 'score':[], 'bad':[]} #track scores for histogram
         for algorithm, algorithm_info in info["algorithms"].items():
             runs_sorted = runs[awkward.argsort(runs[algorithm_info["score"]], ascending=False)]
             logger.info("[assess.py] For histogram '%s', algorithm '%s', the mean +/- std anomaly score is: %.2e +/- %.2e." % (h, algorithm, awkward.mean(runs[algorithm_info["score"]]), awkward.std(runs[algorithm_info["score"]])))
@@ -128,18 +144,37 @@ def main(args):
             logger.info("\t The runs with the highest anomaly scores are:")
             for i in range(N):
                 logger.info("\t Run number : %d, Anomaly Score : %.2e" % (runs_sorted.run_number[i], runs_sorted[algorithm_info["score"]][i]))
-
+            stats['hist'].append(h)
+            stats['algo'].append(algorithm)
+            stats['avg_an_score'].append(awkward.mean(runs[algorithm_info["score"]]))
+            stats['std_an_score'].append(awkward.std(runs[algorithm_info["score"]]))
+            if 'CSC' in h:
+                label_field = 'CSC_label'
+            elif 'emtf' in h:
+                label_field = 'EMTF_label'
+            if len(numpy.unique(runs[label_field])) > 1:
+               score_hist_data['algo'].append(algorithm)
+               score_hist_data['score'].append(runs[algorithm_info["score"]][runs[label_field] == 0])
+               score_hist_data['bad'].append(runs[algorithm_info["score"]][runs[label_field] == 1])
+        if not os.path.isdir(args.output_dir + "/" + h.replace("/", "").replace(" ", "") + "/"):
+            os.mkdir(args.output_dir + "/" + h.replace("/", "").replace(" ", "") + "/")
+        if len(score_hist_data['algo']) != 0:
+            plot_rescaled_score_hist(score_hist_data, h, args.output_dir + "/" + h.replace("/", "").replace(" ", "") + "/" + "score_hist.png")
     # Histogram of sse for algorithms
     splits = {
             "train_label" : [("train", 0), ("test", 1)],
             "label" : [("anomalous", kANOMALOUS), ("good", kGOOD)]
     }
- 
+    
     for h, info in histograms.items():
         for split, split_info in splits.items():
             recos_by_label = { k : {} for k,v in info["algorithms"].items() }
             for name, id in split_info:
-                runs_set = runs[runs[split] == id]
+                if 'CSC' in h:
+                    label_field = 'CSC_label'
+                elif 'emtf' in h:
+                    label_field = 'EMTF_label'
+                runs_set = runs[runs[label_field] == id]
                 if len(runs_set) == 0:
                     logger.warning("[assess.py] For histogram '%s', no runs belong to the set '%s', skipping making a histogram of SSE for this." % (h, name))
                     continue
@@ -149,36 +184,43 @@ def main(args):
                     recos_by_label[algorithm][name] = { "score" : runs_set[algorithm_info["score"]] }
 
                 h_name = h.replace("/", "").replace(" ", "")
-                save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (split, name)
+                save_name = args.output_dir + "/" + h_name + "/sse_%s_%s.pdf" % (split, name)
                 make_sse_plot(h_name, recos, save_name)
 
             for algorithm, recos_alg in recos_by_label.items():
                 if not recos_alg:
                     continue
-                save_name = args.output_dir + "/" + h_name + "_sse_%s_%s.pdf" % (algorithm, split)
+                save_name = args.output_dir + "/" + h_name + "/sse_%s_%s.pdf" % (algorithm, split)
                 make_sse_plot(h_name, recos_alg, save_name) 
-
-
+ 
     # ROC curves (if there are labeled runs)
-    has_labeled_runs = True
-    labeled_runs_cut = runs.run_number < 0 # dummy all False cut
-    for name, id in splits["label"]:
-        cut = runs.label == id
-        labeled_runs_cut = labeled_runs_cut | cut
-        runs_set = runs[cut]
-        has_labeled_runs = has_labeled_runs and (len(runs_set) > 0)
-
-    if has_labeled_runs:
-        labeled_runs = runs[labeled_runs_cut]
-        roc_results = {}
-        for h, info in histograms.items():
+    has_labeled_runs = {h:True for h in histograms}
+    labeled_runs_cut = {h:runs.run_number < 0 for h in histograms}
+    for h, info in histograms.items():
+        if 'CSC' in h:
+            label_field = 'CSC_label'
+        elif 'emtf' in h:
+            label_field = 'EMTF_label'
+        for name, id in splits["label"]:
+            cut = runs[label_field] == id
+            labeled_runs_cut[h] = labeled_runs_cut[h] | cut
+            runs_set = runs[cut]
+            has_labeled_runs[h] = has_labeled_runs[h] and (len(runs_set) > 0)
+    roc_results = {}
+    for h, info in histograms.items():
+        if has_labeled_runs[h]:
+            labeled_runs = runs[labeled_runs_cut[h]]
             roc_results[h] = {}
+            if 'CSC' in h:
+                label_field = 'CSC_label'
+            elif 'emtf' in h:
+                label_field = 'EMTF_label'
             for algorithm, algorithm_info in info["algorithms"].items():
                 pred = labeled_runs[algorithm_info["score"]]
-                roc_results[h][algorithm] = calc_roc_and_unc(labeled_runs.label, pred)
+                roc_results[h][algorithm] = calc_roc_and_unc(labeled_runs[label_field], pred)
 
             h_name = h.replace("/", "").replace(" ", "")
-            save_name = args.output_dir + "/" + h_name + "_roc.pdf"
+            save_name = args.output_dir + "/" + h_name + "/roc.pdf"
             plot_roc_curve(h_name, roc_results[h], save_name)
             plot_roc_curve(h_name, roc_results[h], save_name.replace(".pdf", "_log.pdf"), log = True)
             print_eff_table(h_name, roc_results[h])
@@ -197,9 +239,10 @@ def main(args):
         for run in selected_runs:
             selected_runs_idx = selected_runs_idx | (runs.run_number == run)
         logger.debug("[assess.py] Will make plots for the %d specified runs: %s" % (len(selected_runs), str(selected_runs)))
-
+    
     runs_trim = runs[selected_runs_idx]
     for h, info in histograms.items():
+        stats_checked = False
         for i in range(len(runs_trim)):
             run = runs_trim[i]
             run_number = run.run_number
@@ -209,12 +252,25 @@ def main(args):
                 if algorithm_info["reco"] is None:
                     continue
                 recos[algorithm] = { "reco" : run[algorithm_info["reco"]], "score" : run[algorithm_info["score"]]}
+                
+                if not stats_checked:
+                    if run[algorithm_info["reco"]].ndim > 1:
+                        stats['dim_0'].append(len(run[algorithm_info["reco"]]))
+                        stats['dim_1'].append(len(run[algorithm_info["reco"]][0]))
+                    else:
+                        stats['dim_0'].append(len(run[algorithm_info["reco"]]))
+                        stats['dim_1'].append(numpy.nan)
+            stats_checked = True
             h_name = h.replace("/", "").replace(" ", "")
-            save_name = args.output_dir + "/" + h_name + "_Run%d.pdf" % run_number
-            make_original_vs_reconstructed_plot(h_name, original, recos, run_number, save_name) 
+            save_name = args.output_dir + "/" + h_name + "/Run%d.pdf" % run_number
+            make_original_vs_reconstructed_plot(h_name, original, recos, run_number, save_name, hist_layout = args.hist_layout) 
 
     logger.info("[assess.py] Plots written to directory '%s'." % (args.output_dir))
-
+    stat_parquet_dir = args.output_dir + "/assessment_stats.parquet"
+    stat_csv_dir = args.output_dir + "/assessment_stats.csv"
+    pandas.DataFrame(stats).to_csv(stat_csv_dir)
+    pandas.DataFrame(stats).to_parquet(stat_parquet_dir)
+    logger.info("[assess.py] Assessment statistics written to '%s' and '%s'" % (stat_parquet_dir, stat_csv_dir))
     if args.make_webpage:
         os.system("cp web/index.php %s" % args.output_dir)
         os.system("chmod 755 %s" % args.output_dir)
