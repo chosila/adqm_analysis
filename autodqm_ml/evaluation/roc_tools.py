@@ -49,7 +49,7 @@ def bootstrap_indices(x):
     return numpy.random.randint(0, len(x), len(x))
     
 
-def calc_roc_and_unc(y, pred, sample_weight = None, n_bootstrap = 100, interp = 10000):
+def calc_roc_and_unc(y, pred, sample_weight = None, n_bootstrap = 1000, interp = 10000):
     """
     Calculates tpr and fpr arrays (with uncertainty for tpr) and auc and uncertainty
     Keyword arguments:
