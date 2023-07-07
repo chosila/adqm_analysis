@@ -7,7 +7,6 @@ from autodqm_ml.algorithms.statistical_tester import StatisticalTester
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.algorithms.pca import PCA
 from autodqm_ml.algorithms.autoencoder import AutoEncoder
-from autodqm_ml.algorithms.mirrorAE import MirrorAE
 from autodqm_ml.utils import expand_path
 
 parser = argparse.ArgumentParser()
@@ -52,9 +51,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--train_highest_only",
-    help = "If set, only trains on the runs with the highest stats, or the highest number of entries. The test set becomes the remaining runs.",
-    action = "store_true",
-    required = False
+    help = "If True, only trains on the runs with the highest stats, or the highest number of entries. The test set becomes the remaining runs.",
+    type = bool,
+    required = False,
+    default = False
 )
 
 
@@ -72,13 +72,7 @@ parser.add_argument(
 #    required = False,
 #    default = 0.5,
 #)
-parser.add_argument(
-    "--stats_output_dir",
-    help = "Makes a series of plots and a table containing data taken during training progression, and saves them in the provided output directory. If not provided, will not save train stats.",
-    required = False,
-    type = str,
-    default = None
-)
+
 parser.add_argument(
     "--reference",
     help = "reference run number to use for comparisons with StatisticalTester",
@@ -133,7 +127,7 @@ else:
     config = vars(args)
     config["name"] = args.algorithm.lower()
 
-if not config["name"] in ["autoencoder", "pca", "statistical_tester", "mirrorae"]:
+if not config["name"] in ["autoencoder", "pca", "statistical_tester"]:
     message = "[train.py] Requested algorithm '%s' is not in the supported list of algorithms ['autoencoder', 'pca']." % (config["name"])
     logger.exception(message)
     raise RuntimeError()
@@ -144,8 +138,7 @@ elif config["name"] == "autoencoder":
     algorithm = AutoEncoder(**config)
 elif config["name"] == "statistical_tester":
     algorithm = StatisticalTester(**config)
-elif config["name"] == "mirrorae":
-    algorithm = MirrorAE(**config)
+
 if args.input_file is None and "input_file" not in config.keys():
     message = "[train.py] An input file for training the ML algorithm was not supplied through CLI nor found in the json config file for the algorithm."
     logger.exception(message)
