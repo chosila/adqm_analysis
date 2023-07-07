@@ -11,46 +11,26 @@ logger = logging.getLogger(__name__)
 import tensorflow as tf
 import tensorflow.keras as keras
 
-from datetime import datetime
-
-from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm 
+from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml import utils
-from autodqm_ml.constants import kANOMALOUS, kGOOD
-from autodqm_ml.plotting.plot_tools import make_training_plots
+
 DEFAULT_OPT = {
         "batch_size" : 128, 
         "val_batch_size" : 1024,
         "learning_rate" : 0.001,
         "n_epochs" : 1000,
-        "loss": "mse",
         "early_stopping" : True,
         "early_stopping_rounds" : 3,
-        "n_conv_layers": 2,
-        "n_hidden_layers" : 1,
+        "n_hidden_layers" : 2,
         "n_nodes" : 50,
         "n_components" : 3,
         "kernel_1d" : 3,
         "kernel_2d" : 3,
         "strides_1d" : 1,
         "strides_2d" : 1,
-        "n_filters" : 12,
-        "encoder_conv_padding" : "valid",
-        "pooling" : False,
-        "pooling_kernel_1d" : 2,
-        "pooling_kernel_2d" : 2,
-        "pooling_stride_1d" : None,
-        "pooling_stride_2d" : None,
-        "decoder_conv_layers" : True,
         "dropout" : 0.0,
         "batch_norm" : False,
-        "retain_best":False,
-        "lr_plateau_decay": False,
-        "lr_plateau_decay_rounds": 5,
-        "lr_plateau_decay_factor": 1,
-        "lr_plateau_threshold": 0,
-        "overwrite":False,
-        "train_highest_only":False,
-        "low_stat_threshold": 10000
+        "n_filters" : 12
 }
 
 class AutoEncoder(MLAlgorithm):
@@ -69,6 +49,7 @@ class AutoEncoder(MLAlgorithm):
                 original = DEFAULT_OPT,
                 new = kwargs.get('config', {})
         )
+
         self.mode = kwargs.get('autoencoder_mode', 'individual')
         if self.mode is None:
             self.mode = "individual"
@@ -117,14 +98,11 @@ class AutoEncoder(MLAlgorithm):
                 model_file = "%s/autoencoder_%s_%s.h5" % (self.output_dir, histogram, self.tag)
             
             if os.path.exists(model_file):
+                logger.warning("[AutoEncoder : train] A trained AutoEncoder already exists with tag '%s' at file '%s'. We will load the saved model from the file rather than retraining. If you wish to retrain please provide a new tag or delete the old outputs." % (self.tag, model_file))
                 self.models[histogram] = self.load_model(model_file)
-                if self.config['overwrite']:
-                    logger.warning("[AutoEncoder : train] Overwrite has been turned on and a trained AutoEncoder already exists with tag '%s' at file '%s'. We will load the saved model from the file and continue to train it." % (self.tag, model_file))
-                    model = self.models[histogram]
-                else:
-                    logger.warning("[AutoEncoder : train] A trained AutoEncoder already exists with tag '%s' at file '%s'. We will load the saved model from the file rather than retraining. If you wish to retrain please provide a new tag or delete the old outputs." % (self.tag, model_file))
-                    continue
-                    
+                return
+
+
             inputs, outputs = self.make_inputs(split = "train", histogram_name = histogram)
             inputs_val, outputs_val = self.make_inputs(split = "test", histogram_name = histogram)
 
@@ -139,24 +117,18 @@ class AutoEncoder(MLAlgorithm):
             elif self.mode == "individual":
                 histograms = { histogram : self.histograms[histogram] }
 
-            if not os.path.exists(model_file):
-                 model = AutoEncoder_DNN(histograms, **self.config).model()
-                 if self.config["overwrite"]:
-                     logger.warning("[AutoEncoder : train] Overwrite has been turned on but no existing model was found with tag '%s' at file '%s'. We will create and train a new model." % (self.tag, model_file))
-            model.summary()
+            model = AutoEncoder_DNN(histograms, **self.config).model()
+           
             model.compile(
                     optimizer = keras.optimizers.Adam(learning_rate = self.config["learning_rate"]), 
-                    loss = self.config['loss'],
-                    metrics = ["mse"]
+                    loss = keras.losses.MeanSquaredError()
             )
 
             callbacks = []
             if self.config["early_stopping"]:
-                callbacks.append(keras.callbacks.EarlyStopping(monitor = 'val_mse', patience = self.config["early_stopping_rounds"], restore_best_weights = self.config['retain_best']))
-            if self.config["lr_plateau_decay"]:
-                callbacks.append(keras.callbacks.ReduceLROnPlateau(patience = self.config["lr_plateau_decay_rounds"], factor = self.config["lr_plateau_decay_factor"], min_delta = self.config["lr_plateau_threshold"]))
+                callbacks.append(keras.callbacks.EarlyStopping(patience = self.config["early_stopping_rounds"]))
 
-            history = model.fit(
+            model.fit(
                     inputs,
                     outputs,
                     validation_data = (inputs_val, outputs_val),
@@ -164,18 +136,7 @@ class AutoEncoder(MLAlgorithm):
                     epochs = self.config["n_epochs"],
                     batch_size = self.config["batch_size"]
             )
-            if self.stats_output_dir:
-               if not os.path.isdir(self.stats_output_dir):
-                   os.mkdir(self.stats_output_dir)
-               history = pandas.DataFrame(history.history)
-               runlabel = 'run_' + datetime.now().strftime('%H%M%S%m%d')
-               logger.info("[AutoEncoder : train] Saving training statistics in '%s'." % (self.stats_output_dir))
-               history.to_csv(self.stats_output_dir + runlabel + '_history.csv')
-               history.to_parquet(self.stats_output_dir + runlabel + '_history.parquet')
-               make_training_plots(history, histogram, self.stats_output_dir + runlabel + '_plots.png')
-               
-
-             
+            
             self.save_model(model, model_file)
             self.models[histogram] = model
 
@@ -183,8 +144,8 @@ class AutoEncoder(MLAlgorithm):
     def predict(self, batch_size = 1024):
         for histogram, model in self.models.items():
             inputs, outputs = self.make_inputs(split = "all", histogram_name = histogram)
-           
             predictions = model.predict(inputs, batch_size = batch_size)
+
             if self.mode == "simultaneous" and self.n_histograms >= 2:
                 predictions = { name : pred for name, pred in zip(model.output_names, predictions) }
             else:
@@ -193,10 +154,12 @@ class AutoEncoder(MLAlgorithm):
             for name, pred in predictions.items():
                 hist_name = self.histogram_name_map[name.replace("output_", "")] # shape [n_runs, histogram dimensions, 1]
                 original_hist = self.df[hist_name] # shape [n_runs, histogram dimensions]
+
                 reconstructed_hist = awkward.flatten( # change shape from [n_runs, histogram dimensions, 1] -> [n_runs, histogram dimensions]
                         awkward.from_numpy(pred),
                         axis = -1 
                 )
+
                 sse = awkward.sum( # perform sum along inner-most axis, i.e. first histogram dimension
                         (original_hist - reconstructed_hist) ** 2,
                         axis = -1
@@ -216,39 +179,20 @@ class AutoEncoder(MLAlgorithm):
         inputs = {}
         outputs = {}
 
+        if split == "train":
+            cut = self.df.train_label == 0
+        elif split == "test":
+            cut = self.df.train_label == 1
+        else:
+            cut = self.df.run_number >= 0 # dummy all True cut
+
+        df = self.df[cut]
+
         for histogram, info in self.histograms.items():
             if histogram_name is not None: # self.mode == "individual", i.e. separate autoencoder for each histogram
                 if not histogram == histogram_name: # only grab the relevant histogram for this autoencoder
                     continue
-            if 'CSC' in histogram_name:
-                label_field = 'CSC_label'
-            elif 'emtf' in histogram_name:
-                label_field = 'EMTF_label'
-            else:
-                label_field = None
-            
-            if False:# label_field and len(numpy.unique(self.df[label_field])) > 1: #Don't Include Anomalous Runs in Training
-                if split == "train":
-                    message = ('[AutoEncoder : train] Histogram %s is labeled. %i/%i anomalous runs have been removed from the train set.'% (histogram_name, numpy.sum([self.df.train_label[i] == 0 and self.df[label_field][i] == kANOMALOUS for i in range(len(self.df))]),  numpy.sum([self.df.train_label[i] == 0 for i in range(len(self.df))])))
-                    cut = [self.df.train_label[i] == 0 and self.df[label_field][i] == kGOOD for i in range(len(self.df))]
-                elif split == "test":
-                    message = ('[AutoEncoder : train] Histogram %s is labeled. %i/%i anomalous runs have been removed from the train set.'% (histogram_name, numpy.sum([self.df.train_label[i] == 1 and self.df[label_field][i] == kANOMALOUS for i in range(len(self.df))]),  numpy.sum([self.df.train_label[i] == 1 for i in range(len(self.df))])))
-                    cut = [self.df.train_label[i] == 1 and self.df[label_field][i] == kGOOD for i in range(len(self.df))]
-                elif split == "all":
-                    message = ("Data for Histogram %s is labeled, however, 'all' was selected, so all will be used in paritioning" % (histogram_name))
-                    cut = self.df.run_number >= 0
-                else:
-                    cut = self.df[label_field] == kGOOD 
-            else:
-                logger.debug("[AutoEncoder : train] Histogram %s is has no labels, so all will be utiliezed in splitting.")
-                if split == "train":
-                    cut = self.df.train_label == 0
-                elif split == "test":
-                    cut = self.df.train_label == 1
-                else:
-                    cut = self.df.run_number >= 0 # dummy all True cut
 
-            df = self.df[cut] 
             data = tf.convert_to_tensor(df[histogram])
             inputs["input_" + info["name"]] = data
             outputs["output_" + info["name"]] = data
@@ -256,6 +200,7 @@ class AutoEncoder(MLAlgorithm):
         
 
         return inputs, outputs
+
 
 class AutoEncoder_DNN():
     """
@@ -307,7 +252,7 @@ class AutoEncoder_DNN():
                 outputs = self.outputs,
                 name = "autoencoder"
         )
-        #model.summary()
+        model.summary()
         return model
 
 
@@ -318,41 +263,28 @@ class AutoEncoder_DNN():
         )
 
         layer = input
-        for i in range(self.n_conv_layers):
+        for i in range(self.n_hidden_layers):
             name = "encoder_%d_%s" % (i, info["name"])
             if info["n_dim"] == 1:
                 layer = keras.layers.Conv1D(
                         filters = self.n_filters,
                         kernel_size = self.kernel_1d,
-                        strides = self.strides_1d,
+                        strides = 1,
                         activation = "relu",
-                        name = name,
-                        padding = self.encoder_conv_padding
+                        name = name 
                 )(layer)
             elif info["n_dim"] == 2:
                 layer = keras.layers.Conv2D(
                         filters = self.n_filters,
                         kernel_size = self.kernel_2d,
-                        strides = self.strides_2d,
-                        padding = self.encoder_conv_padding,
+                        strides = 1,
                         activation = "relu",
                         name = name
                 )(layer)
-            if self.pooling:
-                if info["n_dim"] == 1:
-                   layer = keras.layers.MaxPooling1D(
-                           pool_size = self.pooling_kernel_1d,
-                           strides = self.pooling_stride_1d,
-                   )(layer)   
-                elif info["n_dim"] == 2:
-                   layer = keras.layers.MaxPooling2D(
-                           pool_size = (self.pooling_kernel_2d, self.pooling_kernel_2d),
-                           strides = self.pooling_stride_2d,
-                   )(layer)
             if self.batch_norm:
-                layer = keras.layers.BatchNormalization(name = name + "_batch_norm")(layer)
+                layer = keras.layers.BatchNormalization(name = name + "_batch_norm")
             if self.dropout > 0:
-                layer = keras.layers.Dropout(self.dropout, name = name + "_dropout")(layer)
+                layer = keras.layers.Dropout(self.dropout, name = name + "_dropout")
 
 
         encoder = keras.layers.Flatten()(layer)
@@ -360,67 +292,51 @@ class AutoEncoder_DNN():
 
 
     def build_decoder(self, histogram, info, input):
-        if self.decoder_conv_layers:
-            n_output_units = info["n_bins"] * self.n_filters
-            layer = keras.layers.Dense(
+        n_output_units = info["n_bins"] * self.n_filters 
+        layer = keras.layers.Dense(
                 units = n_output_units,
                 activation = "relu",
                 name = "decoder_input_%s" % info["name"] 
-            )(input)
-            target_shape = info["shape"] + (self.n_filters,)
-            layer = keras.layers.Reshape(target_shape = target_shape)(layer)
-      
-            for i in range(self.n_conv_layers):
-                if i == (self.n_conv_layers - 1):
-                    activation = "relu"
-                    n_filters = 1
-                    name = "output_%s" % (info["name"])
-                    batch_norm = False
-                    dropout = 0
-                else:
-                    activation = "relu"
-                    n_filters = self.n_filters 
-                    name = "decoder_%d_%s" % (i, info["name"])
-                    batch_norm = self.batch_norm
-                    dropout = self.dropout
+        )(input)
+        target_shape = info["shape"] + (self.n_filters,) 
+        layer = keras.layers.Reshape(target_shape = target_shape)(layer)
 
-                if info["n_dim"] == 1:
-                    layer = keras.layers.Conv1DTranspose(
-                            filters = n_filters,
-                            kernel_size = self.kernel_1d,
-                            strides = self.self.strides_1d,
-                            padding = "same",            
-                            activation = activation,
-                            name = name 
-                    )(layer)
-                elif info["n_dim"] == 2:
-                    layer = keras.layers.Conv2DTranspose(
-                            filters = n_filters, 
-                            kernel_size = self.kernel_2d,
-                            strides = self.strides_2d,
-                            padding = "same", 
-                            activation = activation,
-                            name = name
-                    )(layer)
-                if batch_norm:
-                    layer = keras.layers.BatchNormalization(name = name + "_batch_norm")(layer)
-                if dropout > 0:
-                    layer = keras.layers.Dropout(self.dropout, name = name + "_dropout")(layer)
+        for i in range(self.n_hidden_layers):
+            if i == (self.n_hidden_layers - 1):
+                activation = "relu"
+                n_filters = 1
+                name = "output_%s" % (info["name"])
+                batch_norm = False
+                dropout = 0
+            else:
+                activation = "relu"
+                n_filters = self.n_filters 
+                name = "decoder_%d_%s" % (i, info["name"])
+                batch_norm = self.batch_norm
+                dropout = self.dropout
 
-        else:
-            n_output_units = info["n_bins"]
-            layer = keras.layers.Dense(
-                units = n_output_units,
-                activation = "relu"       
-            )(input)
-            target_shape = info["shape"] + (1,)
-           
-            layer = keras.layers.Reshape(
-                    target_shape = target_shape,
-                    name = "output_%s" % (info["name"])
-            )(layer)
+            if info["n_dim"] == 1:
+                layer = keras.layers.Conv1DTranspose(
+                        filters = n_filters,
+                        kernel_size = self.kernel_1d,
+                        strides = 1,
+                        padding = "same",            
+                        activation = activation,
+                        name = name 
+                )(layer)
+            elif info["n_dim"] == 2:
+                layer = keras.layers.Conv2DTranspose(
+                        filters = n_filters, 
+                        kernel_size = self.kernel_2d,
+                        strides = 1,
+                        padding = "same", 
+                        activation = activation,
+                        name = name
+                )(layer)
+            if batch_norm:
+                layer = keras.layers.BatchNormalization(name = name + "_batch_norm")
+            if dropout > 0:
+                layer = keras.layers.Dropout(self.dropout, name = name + "_dropout") 
+
         output = layer
         return output
-def mse_cutoff(y_true, y_pred):
-    mse = keras.losses.MeanSquaredError()
-    return tf.math.minimum(mse(y_true, y_pred), 5e-6)

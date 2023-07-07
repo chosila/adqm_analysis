@@ -15,7 +15,6 @@ from pathlib import Path
 from autodqm_ml.algorithms.ml_algorithm import MLAlgorithm
 from autodqm_ml.data_formats.histogram import Histogram
 from autodqm_ml.plotting.plot_tools import plot1D, plotMSESummary
-from autodqm_ml.constants import kGOOD, kANOMALOUS
 
 DEFAULT_OPT = {
         "n_components" : 2
@@ -28,11 +27,8 @@ class PCA(MLAlgorithm):
     def __init__(self, **kwargs):
         super(PCA, self).__init__(**kwargs)
 
-
         if not hasattr(self, "n_components"):
             self.n_components = DEFAULT_OPT["n_components"]
-        
-        self.hist_shape = None
 
     def load_model(self, model_file):
         """
@@ -99,35 +95,17 @@ class PCA(MLAlgorithm):
         :return: a 1d histogram (flattened if originally a 2d histogram)
         :rtype: awkward.Array
         """
-        if 'CSC' in histogram:
-            label_field = 'CSC_label'
-        elif 'emtf' in histogram:
-            label_field = 'EMTF_label'
-        else:
-            label_field = None
 
-        if label_field and len(numpy.unique(self.df[label_field])) > 1: #Don't Include Anomalous Runs in Training
-           if split == "train":
-               cut = [self.df.train_label[i] == 0 and self.df[label_field][i] == kGOOD for i in range(len(self.df))]
-           elif split == "test":
-               cut = [self.df.train_label[i] == 0 and self.df[label_field][i] == kGOOD for i in range(len(self.df))]
-           elif split == "all":
-               cut = self.df.run_number >= 0
-           else:
-               cut = self.df[label_field] == kGOOD
-        else:
-           if split == "train":
-               cut = self.df.train_label == 0
-           elif split == "test":
-               cut = self.df.train_label == 1
-           else:
-               cut = self.df.run_number >= 0 # dummy all True cut
+        if split == "train":
+            runs = self.df[self.df.train_label == 0]
+        elif split == "test":
+            runs = self.df[self.df.train_label == 1]
+        elif split == "all":
+            runs = self.df
 
-        df = self.df[cut]
-        h = df[histogram]
+        h = runs[histogram]
 
         n_dim = len(awkward.to_numpy(h[0]).shape)
-        self.hist_shape = awkward.to_numpy(h).shape
 
         if n_dim == 2:
             h = awkward.flatten(h, axis = 2)
@@ -187,6 +165,6 @@ class PCA(MLAlgorithm):
                     (original_hist - reconstructed_hist) ** 2,
                     axis = -1
             )
-           
-            self.add_prediction(histogram, sse, numpy.array(reconstructed_hist).reshape(self.hist_shape))
+
+            self.add_prediction(histogram, sse, reconstructed_hist)
 
