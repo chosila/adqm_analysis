@@ -47,7 +47,7 @@ class Histogram():
             #logger.warning(message)
             return
 
-        self.data = self.data / float(self.n_entries)
+        # self.data = self.data #/ float(self.n_entries)
         self.is_normalized = True
 
     def clean(self):

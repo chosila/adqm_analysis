@@ -5,7 +5,7 @@ dependencies:
   - python
   - pyaml
   - uproot
-  - numpy
+  - numpy==1.21.1
   - xrootd
   - rich
   - pandas
@@ -16,3 +16,5 @@ dependencies:
   - scikit-learn
   - sphinx
   - sphinx_rtd_theme
+  - yahist
+  - tensorflow

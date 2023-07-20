@@ -144,7 +144,7 @@ class AnomalyDetectionAlgorithm():
 
         for histogram, histogram_info in self.histograms.items():
             # Normalize (if specified in histograms dict)
-            if "normalize" in histogram_info.keys():
+            if False:#"normalize" in histogram_info.keys():
                 if histogram_info["normalize"]:
                     sum = awkward.sum(df[histogram], axis = -1)
                     if histogram_info["n_dim"] == 2:
