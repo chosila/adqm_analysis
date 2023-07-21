@@ -190,7 +190,7 @@ class DataFetcher():
                 files += DataFetcher.get_files(dir, year, datasets, short) # run recursively on subdirs
 
             if short:
-                if len(files) > 2:
+                if len(files) > 5:
                     break 
 
         for idx, file in enumerate(files):
@@ -285,19 +285,24 @@ class DataFetcher():
     @staticmethod
     def get_run_prefix(directory):
         """
-        For directories on /eos in the form 'R000NNNNxx/', return the run prefix NNNN
+        For directories on /eos in the form 'R000NNNNxx/ or 000NNNNxx', return the run prefix NNNN
         :param directory: name of directory
         :type directory: str
         :return: run prefix
         :rtype: str
         """
         sub_dir = directory.split("/")[-1]
-        if not (sub_dir.startswith("R000") or sub_dir.endswith("xx")):
+        if not (sub_dir.startswith("R000") or sub_dir.startswith("000") or sub_dir.endswith("xx")):
             message = "[DataFetcher : get_run_prefix] Directory '%s' with sub-directory '%s' was not in expected format." % (directory, sub_dir)
             logger.exception(message)
             raise ValueError(message)
 
-        return sub_dir.replace("R000", "").replace("xx", "")
+        if sub_dir.startswith("R000"):
+            return sub_dir.replace("R000", "").replace("xx", "")
+        elif sub_dir.startswith("000"):
+            return sub_dir[3:].replace("xx", "")
+        else:
+            return sub_dir.replace("xx", "")
 
     @staticmethod
     def get_run_number(file):
