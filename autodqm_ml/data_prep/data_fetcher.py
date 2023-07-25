@@ -133,9 +133,28 @@ class DataFetcher():
                 for file in files:
                     logger.debug("\t %s" % file)
 
-                self.files[pd][year] = files
-                self.files["all"] += files
+                #self.files[pd][year] = files
+                #self.files["all"] += files
+                # RW Take prompt reco ROOT files from EOS to avoid degenerate re-reco files
+                files = [i for i in files if "PromptReco" not in i]
 
+                all_runs = [i.partition("DQM_V0")[2][0:14] for i in files]
+                unique_runs = list(set(all_runs))
+
+                unique_files = []
+                for unique_run in unique_runs:
+                    for eachFile in files:
+                        if unique_run in eachFile:
+                            unique_files.append(eachFile)
+                            break
+
+                print("Unique files:")
+                print(len(files))
+                print(len(unique_files))
+                print(unique_files)
+
+                self.files[pd][year] = unique_files
+                self.files["all"] += unique_files
 
     @staticmethod
     def construct_eos_path(base_path, pd, year):
@@ -168,6 +187,7 @@ class DataFetcher():
         files = []
 
         directories = os.popen("xrdfs root://eoscms.cern.ch/ ls %s" % path).read().split("\n")
+
         for dir in directories:
             if dir == "":
                 continue
@@ -181,6 +201,7 @@ class DataFetcher():
                     if not any(("Run" + year + era) in file for era in datasets["eras"]): # check if file matches any of the specified eras
                         continue
                 if datasets["runs"] is not None:
+
                     if not any(run in file for run in datasets["runs"]): # check if file matches any of the specified runs
                         continue
                 files.append(file)

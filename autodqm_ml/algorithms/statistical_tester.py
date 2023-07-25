@@ -21,7 +21,7 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
         self.reference = kwargs.get("reference", None)
 
     def predict(self):
-        nRef = 3 ## Number of reference runs required
+        nRef = 1 ## Number of reference runs required
         sort_runs = numpy.sort(self.df.run_number)  ## List of all runs, sorted low to high
         ## can make a boolean df here with the conditions, then access the bollean array in the  if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs) line
         ## the boolean array will either be for {good vs. bad} or { test-only vs. train}??
