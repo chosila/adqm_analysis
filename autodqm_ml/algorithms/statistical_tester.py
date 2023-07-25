@@ -23,6 +23,9 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
     def predict(self):
         nRef = 3 ## Number of reference runs required
         sort_runs = numpy.sort(self.df.run_number)  ## List of all runs, sorted low to high
+        ## can make a boolean df here with the conditions, then access the bollean array in the  if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs) line
+        ## the boolean array will either be for {good vs. bad} or { test-only vs. train}??
+
 
         ## Loop over histograms
         for histogram, info in self.histograms.items():
@@ -34,8 +37,10 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
             for i in range(len(score_chi2)):
                 ref_runs  = []  ## List of reference runs for this data run
                 ## Use nRef previous runs as the reference runs
+                ## select only good runs, only train?
                 for xRun in reversed(sort_runs):
-                    if xRun < self.df['run_number'][i] and not xRun in ref_runs:
+                    if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs)
+                    and (self.df['label'][i] == 0) and (self.df['train_label'][i] == 0):
                         ref_runs.append(xRun)
                     if len(ref_runs) >= nRef:
                         break
@@ -44,7 +49,7 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
                 ## Append nRef histograms
                 ref_hists = []
                 for xRun in ref_runs:
-                    ref_hists.append(self.df[self.df.run_number == xRun][0][histogram]) 
+                    ref_hists.append(self.df[self.df.run_number == xRun][0][histogram])
 
                 print('\nhistogram : ', histogram)
                 print('refs : ', ref_runs)
@@ -66,8 +71,8 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
         """
 
         score, p_value = ks_2samp(
-                numpy.array(target), 
-                numpy.array(reference) 
+                numpy.array(target),
+                numpy.array(reference)
         )
 
         return score, p_value
@@ -76,12 +81,12 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
     def pull_value_test(self, target, reference):
         """
         Perform pull value test on two 2d histograms.
-            
+
         :param histogram: Histogram object
         :type histogram: autodqm_ml.data_formats.histogram.Histogram
         :param threshold: value for which to declare a histogram anomalous
         :type threshold: float
         """
-    
+
         # TODO
         return 0

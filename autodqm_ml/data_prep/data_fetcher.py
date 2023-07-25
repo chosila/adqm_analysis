@@ -17,7 +17,7 @@ HIST_PATH = "DQMData/Run {}/"
 class DataFetcher():
     """
     Class to access DQM data on /eos through `xrootd`.
-    :param contents: path to json file specifying the subsytems and histograms to grab 
+    :param contents: path to json file specifying the subsytems and histograms to grab
     :type contents: str
     :param datasets: path to json file specifying the years, eras, runs, productions, and primary datasets to grab
     :type datasets: str
@@ -30,7 +30,7 @@ class DataFetcher():
             message = "[DataFetcher : __init__] Unable to find a valid grid proxy, which is necessary to access DQM data on /eos with `xrootd`. Please create a valid grid proxy and rerun."
             logger.exception(message)
             raise RuntimeError()
-        
+
         self.output_dir = output_dir
 
         if not os.path.exists(contents):
@@ -47,12 +47,12 @@ class DataFetcher():
             message = "[DataFetcher : __init__] The 'primary_datasets' field was not specified in input json '%s'! Please specify." % primary_datasets
             logger.exception(message)
             raise ValueError(message)
- 
+
         if "years" not in pds_and_datasets.keys():
             message = "[DataFetcher : __init__] The 'years' field was not specified in input json '%s'! Please specify." % datasets
             logger.exception(message)
-            raise ValueError(message) 
-           
+            raise ValueError(message)
+
         self.pds = pds_and_datasets["primary_datasets"]
         self.datasets = pds_and_datasets["years"]
 
@@ -83,7 +83,7 @@ class DataFetcher():
             for hist in info:
                 logger.info("\t\t %s" % hist)
         logger.info("\t for the following years %s" % str(self.datasets.keys()))
-        logger.info("\t and for the following primary datasets %s" % str(self.pds)) 
+        logger.info("\t and for the following primary datasets %s" % str(self.pds))
 
         logger.info("[DataFetcher : run] Grabbing histograms for the following years: %s" % str(self.datasets.keys()))
         for year, info in self.datasets.items():
@@ -93,7 +93,7 @@ class DataFetcher():
             logger.info("\t specified runs: %s" % (str(info["runs"])))
 
             if info["bad_runs"] is not None:
-                logger.info("\t The following runs will be labeled as 'bad' (with 'label' = 1): %s" % (str(info["bad_runs"]))) 
+                logger.info("\t The following runs will be labeled as 'bad' (with 'label' = 1): %s" % (str(info["bad_runs"])))
             if info["good_runs"] is not None:
                 logger.info("\t The following runs will be labeled as 'good' (with 'label' = 0): %s" % (str(info["good_runs"])))
 
@@ -125,7 +125,7 @@ class DataFetcher():
                 path = self.construct_eos_path(EOS_PATH, pd, year)
 
                 logger.info("[DataFetcher : get_files] Searching for directories and files matching the primary dataset '%s', the specified datasets %s under directory '%s'" % (pd, str(info), path))
-                    
+
                 files = self.get_files(path, year, info, self.short)
 
                 logger.info("[DataFetcher : get_files] Grabbed %d files under path %s" % (len(files), path))
@@ -172,6 +172,8 @@ class DataFetcher():
             if dir == "":
                 continue
             if ".root" in dir: # this is already a root file
+                if ".dqminfo" in dir:
+                    continue
                 file = dir
                 if not any(prod in file for prod in datasets["productions"]): # check if file matches any of the specified productions
                     continue
@@ -191,11 +193,12 @@ class DataFetcher():
 
             if short:
                 if len(files) > 5:
-                    break 
+                    break
 
         for idx, file in enumerate(files):
             if not file.startswith("root://eoscms.cern.ch/"):
                 files[idx] = "root://eoscms.cern.ch/" + file # prepend xrootd accessor
+
 
         return files
 
@@ -206,7 +209,7 @@ class DataFetcher():
         """
         self.data = {}
         for pd in self.pds:
-            self.data[pd] = {} 
+            self.data[pd] = {}
             for year in self.datasets.keys():
                 logger.info("[DataFetcher : extract_data] Loading histograms for pd '%s' and year '%s' from %d total files." % (pd, year, len(self.files[pd][year])))
                 for file in tqdm(self.files[pd][year]):
@@ -227,7 +230,7 @@ class DataFetcher():
 
                     logger.debug("[DataFetcher : load_data] Loading histograms from file %s, run %d" % (file, run_number))
 
-                    histograms = self.load_data(file, run_number, self.contents) 
+                    histograms = self.load_data(file, run_number, self.contents)
                     if not self.data[pd]:
                         self.data[pd] = histograms
 
@@ -237,9 +240,9 @@ class DataFetcher():
                         histograms["label"] = [label]
                         for k, v in histograms.items():
                             self.data[pd][k] += v
-                        
 
-    def load_data(self, file, run_number, contents): 
+
+    def load_data(self, file, run_number, contents):
         """
         Load specified histograms from a given file.
         :param file: dqm file
@@ -253,7 +256,7 @@ class DataFetcher():
         :param histograms: list of histograms to load data for
         :type histograms: list of str
         :return: histogram names and contents
-        :rtype: dict 
+        :rtype: dict
         """
         #hist_data = { "columns" : [], "data" : [] }
         hist_data = {}
@@ -270,9 +273,9 @@ class DataFetcher():
                 logger.warning("[DataFetcher : load_data] Problem loading file '%s', it might be corrupted. We will just skip this file." % file)
                 return None
 
-            for subsystem, histogram_list in contents.items(): 
+            for subsystem, histogram_list in contents.items():
                 for hist in histogram_list:
-                    histogram_path = DataFetcher.construct_histogram_path(HIST_PATH, run_number, subsystem, hist) 
+                    histogram_path = DataFetcher.construct_histogram_path(HIST_PATH, run_number, subsystem, hist)
                     hist_data[subsystem + "/" + hist] = [f[histogram_path].values()]
 
         logger.debug("[DataFetcher : load_data] Histogram contents:")
@@ -341,14 +344,14 @@ class DataFetcher():
             array = awkward.from_parquet("file.parquet")
             df = pandas.read_parquet("file.parquet")
         """
-        os.system("mkdir -p %s/" % self.output_dir) 
+        os.system("mkdir -p %s/" % self.output_dir)
 
         for pd in self.pds:
             array = awkward.Array(self.data[pd])
             if array is not None:
                 output_file = "%s/%s.parquet" % (self.output_dir, pd)
                 logger.info("[DataFetcher : write_data] Writing histograms to output file '%s'" % (output_file))
-                awkward.to_parquet(array, output_file) 
+                awkward.to_parquet(array, output_file)
 
 
     def write_summary(self):
@@ -356,4 +359,3 @@ class DataFetcher():
         Write summary json of configuration.
         """
         return
-
