@@ -37,10 +37,10 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
             for i in range(len(score_chi2)):
                 ref_runs  = []  ## List of reference runs for this data run
                 ## Use nRef previous runs as the reference runs
-                ## select only good runs, only train?
+                ## select only good runs, select only
                 for xRun in reversed(sort_runs):
-                    if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs)
-                    and (self.df['label'][i] == 0) and (self.df['train_label'][i] == 0):
+                    if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs) \
+                    and (self.df['label'][i] == 0):
                         ref_runs.append(xRun)
                     if len(ref_runs) >= nRef:
                         break

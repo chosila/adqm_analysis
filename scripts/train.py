@@ -154,12 +154,16 @@ if args.input_file is not None: #
 else:
     training_file = config["input_file"]
 
-if args.histograms is not None:
+if (args.histograms is not None) and ('.json' not in args.histograms):
     histograms = {x : { "normalize" : True} for x in args.histograms.split(",")}
+elif '.json' in args.histograms:
+    histograms = json.load(open(args.histograms, 'r'))
+    histograms = { i + '/' + j : {"normalize" : False} for i in histograms for j in histograms[i]}
 elif isinstance(config["histograms"], str):
     histograms = {x : { "normalize" : True} for x in config["histograms"].split(",")}
 elif isinstance(config["histograms"], dict):
     histograms = config["histograms"]
+# take the metadata/histogram_list json as histogram list
 else:
     logger.exception("[train.py] The `histograms` argument should either be a csv list of histogram names (str) or a dictionary (if provided through a json config).")
     raise RuntimeError()

@@ -6,7 +6,7 @@ import scipy.stats as stats
 from scipy.special import gammaln
 
 def comparators():
-    return { 
+    return {
         'beta_binomial' : beta_binomial
     }
 
@@ -185,7 +185,7 @@ def StdDev(Data, Ref, func):
         output[mask] = (1.0*nData*np.sqrt( clipped/np.square(nRef) + (nData - Mean(nData, Ref, nRef, func))/np.square(nData) ))
     elif (func == 'BetaB') or (func == 'Gamma'):
         output = 1.0*np.sqrt( nData*(Ref+1)*(nRef-Ref+1)*(nRef+2+nData) / (np.power(nRef+2, 2)*(nRef+3)) )
-        
+
     else:
         print('\nInside StdDev, no valid func = %s. Quitting.\n' % func)
         sys.exit()
@@ -248,7 +248,7 @@ def ProbRel(Data, Ref, func, tol=0.01):
     ratio = np.divide(thisProb, maxProb, out=np.zeros_like(thisProb), where=maxProb!=0)
     cond = thisProb > maxProb
     ratio[cond] = 1
-        
+
     return ratio
 
 
