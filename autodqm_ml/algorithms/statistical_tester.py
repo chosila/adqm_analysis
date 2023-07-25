@@ -1,6 +1,7 @@
 import numpy
 from scipy.stats import ks_2samp
 import scipy.stats as stats
+import pandas as pd
 
 from autodqm_ml.algorithms.anomaly_detection_algorithm import AnomalyDetectionAlgorithm
 import plugins.beta_binomial as bb
@@ -22,7 +23,8 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
 
     def predict(self):
         nRef = 1 ## Number of reference runs required
-        sort_runs = numpy.sort(self.df.run_number)  ## List of all runs, sorted low to high
+        sort_runs= pd.DataFrame({x:self.df[x] for x in ['run_number', 'label']})## List of all runs, with the label
+        sort_runs = sort_runs.sort_values(by='run_number', ascending=False) ##sorted low to high
         ## can make a boolean df here with the conditions, then access the bollean array in the  if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs) line
         ## the boolean array will either be for {good vs. bad} or { test-only vs. train}??
 
@@ -38,9 +40,10 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
                 ref_runs  = []  ## List of reference runs for this data run
                 ## Use nRef previous runs as the reference runs
                 ## select only good runs, select only
-                for xRun in reversed(sort_runs):
+                for _, sort_run in sort_runs.iterrows(): # loop over df rows
+                    xRun = sort_run['run_number']
                     if (xRun < self.df['run_number'][i]) and (not xRun in ref_runs) \
-                    and (self.df['label'][i] == 0):
+                    and (sort_run['label'] == 0):
                         ref_runs.append(xRun)
                     if len(ref_runs) >= nRef:
                         break
@@ -54,10 +57,12 @@ class StatisticalTester(AnomalyDetectionAlgorithm):
                 print('\nhistogram : ', histogram)
                 print('refs : ', ref_runs)
                 print('data : ', self.df['run_number'][i])
+                print('label : ', self.df['label'][i])
                 hPair = hp.HistPair('dqmSource', {'comparators': ['beta_binomial']},
                                     'd_ser', 'd_samp', self.df['run_number'][i], 'hName', self.df[histogram][i],
                                     'r_ser', 'r_samp', ref_runs, 'hName', [rh for rh in ref_hists],
                                     False, False)
+
                 chi2_value, pull_value = bb.beta_binomial(hPair)
                 score_chi2[i] = chi2_value
                 score_pull[i] = abs(pull_value)

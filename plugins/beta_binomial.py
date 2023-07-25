@@ -43,7 +43,7 @@ def beta_binomial(histpair, pull_cap=15, chi2_cut=10, pull_cut=10, min_entries=1
 
     ## Does not run beta_binomial if data or ref is 0
     if np.sum(data_hist_raw) <= 0 or nRef == 0:
-        return None
+        return np.NAN, np.NAN#None, None
 
     ## Adjust x-axis range for 1D plots if option set in config file
     if len(data_hist_raw) > 4 and not do_concat:
@@ -63,7 +63,7 @@ def beta_binomial(histpair, pull_cap=15, chi2_cut=10, pull_cut=10, min_entries=1
     ## Update nRef and again don't run on empty histograms
     nRef = len(ref_hists_raw)
     if nRef == 0:
-        return None
+        return np.NAN, np.NAN#None, None
 
     ## Summed ref_hist
     ref_hist_sum = ref_hists_raw.sum(axis=0)
