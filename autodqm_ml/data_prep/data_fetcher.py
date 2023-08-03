@@ -104,9 +104,6 @@ class DataFetcher():
             elif info["good_runs"] is not None:
                 logger.info("\t and all other runs will be assumed to be 'bad' (with 'label' = 1).")
 
-
-
-
         self.get_list_of_files()
         self.extract_data()
         self.write_data()
@@ -133,25 +130,45 @@ class DataFetcher():
                 for file in files:
                     logger.debug("\t %s" % file)
 
-                #self.files[pd][year] = files
-                #self.files["all"] += files
-                # RW Take prompt reco ROOT files from EOS to avoid degenerate re-reco files
-                files = [i for i in files if "PromptReco" not in i]
 
-                all_runs = [i.partition("DQM_V0")[2][0:14] for i in files]
-                unique_runs = list(set(all_runs))
-
+                # ---------------- CS unique run selection ---------------------
+                ## check if list of run exist in dataset list, if yes take, if not define from files list
+                run_nums = []
+                if info["runs"] is not None:
+                    run_nums = info['runs']
+                else:
+                    for f in files:
+                        loc = f.find('_R000') + 5
+                        run_nums.append(f[loc:loc+6])
+                ## loop through run list, grab all file names in files that matches the run number
+                run_nums = list(set(run_nums))
                 unique_files = []
-                for unique_run in unique_runs:
-                    for eachFile in files:
-                        if unique_run in eachFile:
-                            unique_files.append(eachFile)
-                            break
+                for run_num in run_nums:
+                    files_with_num = [x for x in files if run_num in x]
+                    ## if production is defined in yaml, get the first file that matches
+                    if not info['productions'][0] == '':
+                        ## this grabs the first file that matches the production defined in yaml
+                        ## next() grabs the first that matches the condition.
+                        ## This is faster than list comprehension then grabbing the 0th element
+                        unique_files.append(next(s for s in files_with_num if info['productions'][0] in s))
+                    ## else grab the files with preference UL > PromptReco > Re-reco
+                    else:
+                        check_string = '\t'.join(files_with_num)
+                        if 'UL' in check_string:
+                            unique_files.append(next(s for s in files_with_num if 'UL' in s))
+                        elif 'PromptReco' in check_string:
+                            unique_files.append(next(s for s in files_with_num if 'PromptReco' in s))
+                        else:
+                            ## TODO:: make this grab the file that has the latest version and date instead of the first fiel it sees
+                            unique_files.append(files_with_num[0])
+
+                # ---------------------------------------------------------------
+
 
                 print("Unique files:")
                 print(len(files))
                 print(len(unique_files))
-                print(unique_files)
+                #print(unique_files)
 
                 self.files[pd][year] = unique_files
                 self.files["all"] += unique_files
@@ -252,16 +269,20 @@ class DataFetcher():
                     logger.debug("[DataFetcher : load_data] Loading histograms from file %s, run %d" % (file, run_number))
 
                     histograms = self.load_data(file, run_number, self.contents)
+
+                    # i think the following lines are the cause of double first run in parquet
                     if not self.data[pd]:
+                        histograms["run_number"] = [run_number]
+                        histograms["year"] = [year]
+                        histograms["label"] = [label]
                         self.data[pd] = histograms
 
-                    if histograms is not None:
+                    elif histograms is not None:
                         histograms["run_number"] = [run_number]
                         histograms["year"] = [year]
                         histograms["label"] = [label]
                         for k, v in histograms.items():
                             self.data[pd][k] += v
-
 
     def load_data(self, file, run_number, contents):
         """
