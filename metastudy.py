@@ -9,7 +9,7 @@ combined_fig, combined_ax = plt.subplots()
 percNpull_fig, percNpull_ax = plt.subplots()
 percNchi2_fig, percNchi2_ax = plt.subplots()
 percNcomb_fig, percNcomb_ax = plt.subplots()
-N = 3
+N = 1
 
 for numref in ['1_REF', '4_REF', '8_REF']:
     plotkwargs = {'label':numref,  'marker':'.'}
@@ -49,8 +49,8 @@ for numref in ['1_REF', '4_REF', '8_REF']:
     chi2_counts_g = np.array([np.count_nonzero(df_g.filter(regex='chi2') >= cut, axis=1) for cut in chi2_cuts])
     chi2_counts_b = np.array([np.count_nonzero(df_b.filter(regex='chi2')>= cut, axis=1) for cut in chi2_cuts])
 
-    all_counts_g = np.append(pull_counts_g, chi2_counts_g, axis=1)
-    all_counts_b = np.append(pull_counts_b, chi2_counts_b, axis=1)
+    all_counts_g = pull_counts_g+chi2_counts_g#np.append(pull_counts_g, chi2_counts_g, axis=1)
+    all_counts_b = pull_counts_b+chi2_counts_b#np.append(pull_counts_b, chi2_counts_b, axis=1)
 
     avg_pullcnt_g = pull_counts_g.mean(axis=1)
     avg_pullcnt_b = pull_counts_b.mean(axis=1)
@@ -62,29 +62,31 @@ for numref in ['1_REF', '4_REF', '8_REF']:
 
     ## plot
     pull_ax.scatter(avg_pullcnt_g, avg_pullcnt_b, **plotkwargs)
-    pull_ax.set_xlim(0,4)
-    pull_ax.set_ylim(0,8)
+    pull_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
+    pull_ax.set_xlim(0,5)
+    pull_ax.set_ylim(0,15)
     pull_ax.set_title('average runs flagged: pull')
     pull_ax.legend()
     pull_ax.set_xlabel('average good runs flagged')
     pull_ax.set_ylabel('average bad runs flagged')
 
     chi2_ax.scatter(avg_chi2cnt_g, avg_chi2cnt_b , **plotkwargs)
-    chi2_ax.set_xlim(0,4)
-    chi2_ax.set_ylim(0,8)
+    chi2_ax.set_xlim(0,5)
+    chi2_ax.set_ylim(0,15)
     chi2_ax.legend()
     chi2_ax.set_title('average runs flagged: chi2')
     chi2_ax.set_xlabel('average good runs flagged')
     chi2_ax.set_ylabel('average bad runs flagged')
+    chi2_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
 
     combined_ax.scatter(avg_allcnt_g, avg_allcnt_b, **plotkwargs)
     combined_ax.legend()
-    combined_ax.set_xlim(0,4)
-    combined_ax.set_ylim(0,8)
+    combined_ax.set_xlim(0,5)
+    combined_ax.set_ylim(0,15)
     combined_ax.set_title('average runs flagged: combined')
     combined_ax.set_xlabel('average good runs flagged')
     combined_ax.set_ylabel('average bad runs flagged')
-
+    combined_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
 
     # --------------- percent runs given N fails -----------------
     perc_pull_g=np.count_nonzero(pull_counts_g >= N, axis=1)/pull_counts_g.shape[1]
@@ -99,24 +101,27 @@ for numref in ['1_REF', '4_REF', '8_REF']:
     percNpull_ax.set_title('fraction runs with N >= {} failing runs pull cut'.format(N))
     percNpull_ax.set_xlabel('fraction good runs')
     percNpull_ax.set_ylabel('fraction bad runs')
-    percNpull_ax.set_xlim(0,.4)
-    percNpull_ax.set_ylim(0,.8)
+    percNpull_ax.set_xlim(0,.5)
+    percNpull_ax.set_ylim(0,1)
+    percNpull_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
 
     percNchi2_ax.scatter(perc_chi2_g, perc_chi2_b , **plotkwargs)
     percNchi2_ax.legend()
     percNchi2_ax.set_title('fraction runs with N >= {} failing runs chi2 cut'.format(N))
     percNchi2_ax.set_xlabel('fraction good runs')
     percNchi2_ax.set_ylabel('fraction bad runs')
-    percNchi2_ax.set_xlim(0,.4)
-    percNchi2_ax.set_ylim(0,.8)
+    percNchi2_ax.set_xlim(0,.5)
+    percNchi2_ax.set_ylim(0,1)
+    percNchi2_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
 
     percNcomb_ax.scatter(perc_all_g, perc_all_b, **plotkwargs)
     percNcomb_ax.set_title('fraction runs with N >= {} failing runs chi2 or pull cut'.format(N))
     percNcomb_ax.set_xlabel('fraction good runs')
     percNcomb_ax.set_ylabel('fraction bad runs')
-    percNcomb_ax.set_xlim(0,.4)
-    percNcomb_ax.set_ylim(0,.8)
+    percNcomb_ax.set_xlim(0,.5)
+    percNcomb_ax.set_ylim(0,1)
     box = percNcomb_ax.get_position()
     percNcomb_ax.legend()
+    percNcomb_ax.plot(range(0,10), range(0,10), color='r', linewidth=1, linestyle='--')
     # percNcomb_ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # percNcomb_ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
