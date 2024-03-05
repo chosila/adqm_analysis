@@ -63,6 +63,11 @@ A lot of these instructions are very similar to the instructions on the AutoDQM_
 
 1. Make JSON of histograms to use for this analysis. General shape of the JSON are name of the subsystem as the key, followed by list of path to histograms within the root file. Example of what it should look like: <https://github.com/chosila/adqm_analysis/blob/adqm_analysis/metadata/histogram_lists/l1tshift_1.json>
 
+How to choose good_runs/bad_runs
+    1. go to run registry <https://cmsrunregistry.web.cern.ch/online/global?>. Offline or Online depends on the set of histograms you're working with.
+    2. GOOD RUNS: "class = Collisions22", "ls_duration > 77", "<subsystem> = GOOD"
+    3. BAD RUNS:  "class = Collisions22", "ls_duration > 13", "<subsystem> = BAD"
+
 NOTE: Since we are fetching a very large number of root files and all the histograms need to be readout, it is very memory intensive and tend to fail if too many histograms are fetched at once. I have found  that around ~15 histograms at a time is within the safe limit of not encountering any memory issues. To deal with this, I split my histogram_list json files into multiple JSON files, and each one is fetched and run individually.
 
 2. fetch the data.
