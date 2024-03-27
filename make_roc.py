@@ -52,8 +52,6 @@ for numref, marker, color in zip(['1_REF', '4_REF', '8_REF'], ['-rD', '-bo', '-g
     zerothcut = sorted_df_g[0,:] + (sorted_df_g[0, :] - sorted_df_g[1,:])/2
     cuts = np.insert(cuts, 0, zerothcut, axis=0)
 
-    # print(sorted_df_g)
-    #print(zerothcut)
 
     ## get counts and mean
     counts_g = np.array([np.count_nonzero(df_g >= cut, axis=1) for cut in cuts])
@@ -96,7 +94,7 @@ for numref, marker, color in zip(['1_REF', '4_REF', '8_REF'], ['-rD', '-bo', '-g
     ##--------- plotting the output in the same way as rob --------------
     ax1.set_xlabel('Fraction of good runs with at least N=3 histogram flags')
     ax1.set_ylabel('Fraction of bad runs with at least N=3 histogram flags')
-    algorithm_name = "combined"
+    algorithm_name = algo
 
     # commented out but keep for the aggregated scores plots
     #for jj in range(len(N_bad_hists)):
@@ -139,9 +137,25 @@ for numref, marker, color in zip(['1_REF', '4_REF', '8_REF'], ['-rD', '-bo', '-g
     #ax.set_xscale('log')
     #ax.set_title(f'distribution of {algo} threshold values at MH ~ 1.5')
     #plt.savefig(f'plots/analysis/distributionmhh15_{algo}.png')
+    ## threshold distributions
+    from pathlib import Path
+    cuts_df = pd.DataFrame(cuts, columns=df_g.columns)
+    cuts_df.to_csv(f'csv/thresholds/thresholds_{algo}_{numref}.csv')
+    Path('csv/thresholds').mkdir(parents=True, exist_ok=True)
+
+    thdir = plotdir + "/thresholds"
+    Path(thdir).mkdir(parents=True, exist_ok=True)
+    for nthcut in range(5):
+        fig3, ax3 = plt.subplots(figsize=(6,6))
+
+        ax3.hist(cuts_df.iloc[nthcut], bins=10)
+        ax3.set_title(f'distribution of nth = {nthcut} thresholds for {algo} using {numref}')
+        ax3.set_xlabel(f'scores')
+        fig3.savefig(thdir + f"/nth_{nthcut}_threshold_{algo}_{numref}.pdf", bbox_inches='tight')
 
 
-fig0.savefig(plotdir + "HF_ROC_comparison_" + algorithm_name + ".pdf",bbox_inches='tight')
+
+fig0.savefig(plotdir + "HF_ROC_comparison_" + algorithm_name + f"_N{N}" + ".pdf",bbox_inches='tight')
 print("SAVED: " + plotdir + "RF_HF_ROC_comparison_" + algorithm_name + ".pdf")
-fig1.savefig(plotdir + "RF_ROC_comparison_" + algorithm_name + ".pdf",bbox_inches='tight')
+fig1.savefig(plotdir + "RF_ROC_comparison_" + algorithm_name + f"_N{N}" + ".pdf",bbox_inches='tight')
 print("SAVED: " + plotdir + "RF_ROC_comparison_" + algorithm_name + ".pdf")
